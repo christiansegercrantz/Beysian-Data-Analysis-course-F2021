@@ -1,0 +1,96 @@
+---
+title: "Assignment 1"
+author: "Christian Segercrantz"
+date: "9/15/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+### 2.
+
+#### a
+
+```{r}
+rm(list = ls())
+mu = 0.2
+sigma2=0.01
+alpha=mu*((mu*(1-mu)/sigma2)-1)
+beta=alpha*(1-mu)/mu
+x = seq(from=0,to=1, by=0.01)
+betapdf = dbeta(x,alpha,beta)
+plot(x, betapdf, type='l', main='Beta-distribution PDF')
+```
+
+#### b
+
+```{r}
+n = 1000
+sample = rbeta(n,alpha,beta)
+hist(sample)
+```
+
+We can see that the density function has a very similar look to the histogram. 
+
+#### c
+
+```{r}
+mean = mean(sample)
+variance = var(sample)
+```
+
+We can see that the mean and the true mean are roughly very close to each other. The true variance \sigma^2 and the variance are also very close to each.
+
+#### d
+
+```{r}
+CI95=quantile(sample,probs=c(0.025,0.975))
+plot(x,betapdf, type='l', main='Beta-distribution PDF')
+abline(v = CI95[[1]], lty = 2)
+abline(v = CI95[[2]], lty = 2)
+```
+### 3.
+
+```{r}
+rm(list = ls())
+P_test_pos_con_cancer_pos = 0.98
+P_test_neg_con_cancer_neg = 0.96
+P_cancer_pos = 1/1000
+P_cancer_neg = 1 - P_cancer_pos
+P_test_neg_con_cancer_pos = 1 - P_test_pos_con_cancer_pos
+P_test_pos_con_cancer_neg = 1 - P_test_neg_con_cancer_neg
+P_test_pos_and_cancer_pos = P_test_pos_con_cancer_pos * P_cancer_pos
+P_test_neg = P_test_neg_con_cancer_neg * P_cancer_neg + P_test_neg_con_cancer_pos * P_cancer_pos
+P_test_pos = 1-P_test_neg
+P_cancer_pos_con_test_neg = (P_test_neg_con_cancer_pos * P_cancer_pos) /  P_test_neg
+P_cancer_pos_con_test_pos = P_test_pos_con_cancer_pos * P_cancer_pos/ P_test_pos
+cat(paste0("P(cancer=positive|test=neg)=",round(P_cancer_pos_con_test_neg*100,4),"%"),sep="")
+cat(paste0("P(cancer=positive|test=positive)",round(P_cancer_pos_con_test_pos*100,4),"%"),sep="")
+```
+
+We compute the following numbers:
+P(cancer=positive|test=neg) = 0.002%
+P(cancer=positive|test=positive) = 2.3%
+This means that so called false negatives are rare, but true positives are also very low. This means that very few of those who test positive actually have cancer only 2,3% meaning that it will send approximately 50 times too many people to furthur tests and thus does not do what it's planned to do. This happens since the procentage of people actually having cancer is very small. However, we don't know the procentage of people that are t
