@@ -1,8 +1,12 @@
 ---
-title: "Assignment 1"
+title: "BDA - Assignment X"
 author: "Christian Segercrantz"
 date: "9/15/2021"
-output: pdf_document
+output: 
+  pdf_document: 
+    toc: yes
+    toc_depth: 1
+urlcolor: blue
 ---
 
 ```{r setup, include=FALSE}
@@ -99,7 +103,7 @@ This means that so called false negatives are rare, but true positives are also 
 #### a
 ```{r}
 rm(list = ls())
-P_red = function(boxes){
+p_red = function(boxes){
   P_A = 0.4
   P_B = 0.1
   P_C = 1 - P_A - P_B
@@ -111,7 +115,7 @@ P_red = function(boxes){
 }
 
 boxes <- matrix(c(2,4,1,5,5,3), ncol = 2,dimnames = list(c("A", "B", "C"), c("red", "white")))
-P_red(boxes = boxes)
+p_red(boxes = boxes)
 
 
 ```
@@ -119,11 +123,11 @@ There is a approximately 28.4% of picking a red ball.
 
 #### b
 ```{r}
-P_box = function(boxes){
+p_box = function(boxes){
   P_A = 0.4
   P_B = 0.1
   P_C = 1 - P_A - P_B
-  P_red_res = P_red(boxes = boxes)
+  P_red_res = p_red(boxes = boxes)
   P_red_con_A = boxes[1,1]/rowSums(boxes)[1]
   P_red_con_B = boxes[2,1]/rowSums(boxes)[2]
   P_red_con_C = boxes[3,1]/rowSums(boxes)[3]
@@ -133,15 +137,28 @@ P_box = function(boxes){
   res = c(P_A_con_red,P_B_con_red,P_C_con_red)
   return(res)
 }
-P_box(boxes = boxes)
+p_box(boxes = boxes)
 ```
 
 ### 5
 #### a
 ```{r}
 p_identical_twin = function(fraternal_prob, identical_prob){
-  
-  P_identical_con_sameSex = 1
+  P_boy = 1/2
+  P_ident_and_twin_boy = P_boy*identical_prob
+  P_frat_and_twin_boy = P_boy*P_boy*fraternal_prob
+  P_ident_con_twin_boy = P_ident_and_twin_boy/(P_ident_and_twin_boy+P_frat_and_twin_boy)
+  return(P_ident_con_twin_boy)
 }
+p_identical_twin(fraternal_prob = 1/150, identical_prob = 1/400)
+
+```
+
+```{r}
+library(markmyassignment)
+assignment_path <-  paste("https://github.com/avehtari/BDA_course_Aalto/","blob/master/assignments/tests/assignment1.yml", sep="")
+set_assignment(assignment_path)
+#show_tasks()
+mark_my_assignment()
 
 ```
