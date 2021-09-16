@@ -93,4 +93,55 @@ cat(paste0("P(cancer=positive|test=positive)",round(P_cancer_pos_con_test_pos*10
 We compute the following numbers:
 P(cancer=positive|test=neg) = 0.002%
 P(cancer=positive|test=positive) = 2.3%
-This means that so called false negatives are rare, but true positives are also very low. This means that very few of those who test positive actually have cancer only 2,3% meaning that it will send approximately 50 times too many people to furthur tests and thus does not do what it's planned to do. This happens since the procentage of people actually having cancer is very small. However, we don't know the procentage of people that are t
+This means that so called false negatives are rare, but true positives are also very low. This means that very few of those who test positive actually have cancer only 2,3% meaning that it will send approximately 50 times too many people to furthur tests and thus does not do what it's planned to do. This happens since the procentage of people actually having cancer is very small.
+
+### 4
+#### a
+```{r}
+rm(list = ls())
+P_red = function(boxes){
+  P_A = 0.4
+  P_B = 0.1
+  P_C = 1 - P_A - P_B
+  P_red_con_A = boxes[1,1]/rowSums(boxes)[1]
+  P_red_con_B = boxes[2,1]/rowSums(boxes)[2]
+  P_red_con_C = boxes[3,1]/rowSums(boxes)[3]
+  res = P_red_con_A*P_A + P_B*P_red_con_B + P_red_con_C * P_C
+  return(res)
+}
+
+boxes <- matrix(c(2,4,1,5,5,3), ncol = 2,dimnames = list(c("A", "B", "C"), c("red", "white")))
+P_red(boxes = boxes)
+
+
+```
+There is a approximately 28.4% of picking a red ball.
+
+#### b
+```{r}
+P_box = function(boxes){
+  P_A = 0.4
+  P_B = 0.1
+  P_C = 1 - P_A - P_B
+  P_red_res = P_red(boxes = boxes)
+  P_red_con_A = boxes[1,1]/rowSums(boxes)[1]
+  P_red_con_B = boxes[2,1]/rowSums(boxes)[2]
+  P_red_con_C = boxes[3,1]/rowSums(boxes)[3]
+  P_A_con_red = P_red_con_A * P_A / P_red_res
+  P_B_con_red = P_red_con_B * P_B / P_red_res
+  P_C_con_red = P_red_con_C * P_C / P_red_res
+  res = c(P_A_con_red,P_B_con_red,P_C_con_red)
+  return(res)
+}
+P_box(boxes = boxes)
+```
+
+### 5
+#### a
+```{r}
+p_identical_twin = function(fraternal_prob, identical_prob){
+  
+  P_identical_con_sameSex = 1
+}
+
+```
