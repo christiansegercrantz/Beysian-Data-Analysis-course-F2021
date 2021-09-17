@@ -1,41 +1,37 @@
 ---
-title: "BDA - Assignment X"
-author: "Christian Segercrantz"
+title: "BDA - Assignment 1"
 date: "9/15/2021"
 output: 
   pdf_document: 
     toc: yes
-    toc_depth: 1
+    toc_depth: 2
 urlcolor: blue
 ---
+## 1. Basic probability theory notation and terms
 
-### 1. Basic probability theory notation and terms
+-   probability: The process used to predict what will happen (in the future).
 
-* probability: The process used to predict what will happen (in the future).
+-   probability mass: The probability that a discrete random variable will have exactly some value.
 
-* probability mass: The probability that a discrete random variable will have exactly some value.
+-   probability density: The relative (to other points) likelihood that a continuous random variable would take a given value.
 
-* probability density: The relative (to other points) likelihood that a continuous random variable would take a given value.
+-   probability mass function (pmf): A function of the probability mass which gives us the probability that the random variable takes on a certain discrete value.
 
-* probability mass function (pmf): A function of the probability mass which gives us the probability that the random variable takes on a certain discrete value.
+-   probability density function (pdf): A function of the probability density which gives us the probability of the random variable falling in some range.
 
-* probability density function (pdf): A function of the probability density which gives us the probability of the random variable falling in some range.
+-   probability distribution: The mathematical function which takes in the sample space of the variable and outputs the probabilities of events.
 
-* probability distribution: The mathematical function which takes in the sample space of the variable and outputs the probabilities of events.
+-   discrete probability distribution: A probability distribution of a random variable that only take on discrete values.
 
-* discrete probability distribution: A probability distribution of a random variable that only take on discrete values.
+-   continuous probability distribution: A probability distribution of a random variable of real values.
 
-* continuous probability distribution: A probability distribution of a random variable of real values.
+-   cumulative distribution function (cdf): The cumulative distribution function gives the probability that $P(X\leq x)$, i.e. the probability that the random variable takes on at least the value x.
 
-* cumulative distribution function (cdf): The cumulative distribution function gives the probability that $P(X\leq x)$, i.e. the probability that the random variable takes on at least the value x. 
+-   likelihood: The probability of seeing a certain outcome of a underlying defined model.
 
-* likelihood: The probability of seeing a certain outcome of a underlying defined model.  
+## 2. Basic computer skills
 
-
-
-### 2. Basic computer skills
-
-#### a
+### a)
 
 ```{r}
 rm(list = ls())
@@ -45,10 +41,13 @@ alpha=mu*((mu*(1-mu)/sigma2)-1)
 beta=alpha*(1-mu)/mu
 x = seq(from=0,to=1, by=0.01)
 betapdf = dbeta(x,alpha,beta)
-plot(x, betapdf, type='l', main='Beta-distribution PDF')
+plot(x, betapdf,
+     type='l',
+     main='Beta-distribution PDF',
+     ylab= 'Density')
 ```
 
-#### b
+### b)
 
 ```{r}
 n = 1000
@@ -56,27 +55,38 @@ sample = rbeta(n,alpha,beta)
 hist(sample)
 ```
 
-We can see that the density function has a very similar look to the histogram.
+We can see that the density function has a very similar shape to the histogram.
 
-#### c
+### c)
 
 ```{r}
 mean = mean(sample)
 variance = var(sample)
+paste0("Sample mean: ", mean)
+paste0("Sample variance: ",variance)
 ```
 
-We can see that the mean and the true mean are roughly very close to each other. The true variance \sigma\^2 and the variance are also very close to each.
+We can see that the mean and the true mean are roughly the same The true variance $\sigma^2$ and the sample variance are also very close to each.
 
-#### d
+### d)
 
 ```{r}
 CI95=quantile(sample,probs=c(0.025,0.975))
-plot(x,betapdf, type='l', main='Beta-distribution PDF')
-abline(v = CI95[[1]], lty = 2)
-abline(v = CI95[[2]], lty = 2)
+plot(x,betapdf,
+     type='l',
+     main='Beta-distribution PDF',
+     ylab= 'Density')
+abline(v = CI95[[1]],
+     lty = 2,
+     col='red')
+abline(v = CI95[[2]],
+       lty = 2,
+       col='red')
 ```
 
-### 3. Bayes’ theorem
+The central 95% probability interval is approximately between 0.05 and 0.42. The dashed lines highlight the interval edges on the density function plot.
+
+## 3. Bayes' theorem
 
 ```{r}
 rm(list = ls())
@@ -91,15 +101,15 @@ P_test_neg = P_test_neg_con_cancer_neg * P_cancer_neg + P_test_neg_con_cancer_po
 P_test_pos = 1-P_test_neg
 P_cancer_pos_con_test_neg = (P_test_neg_con_cancer_pos * P_cancer_pos) /  P_test_neg
 P_cancer_pos_con_test_pos = P_test_pos_con_cancer_pos * P_cancer_pos/ P_test_pos
-cat(paste0("P(cancer=positive|test=neg)=",round(P_cancer_pos_con_test_neg*100,4),"%"),sep="")
-cat(paste0("P(cancer=positive|test=positive)",round(P_cancer_pos_con_test_pos*100,4),"%"),sep="")
+cat(paste0("P(cancer=positive|test=neg)=",round(P_cancer_pos_con_test_neg*100,4),"%\n"),sep="")
+cat(paste0("P(cancer=positive|test=positive) = ",round(P_cancer_pos_con_test_pos*100,4),"%"),sep="")
 ```
 
-We compute the following numbers: P(cancer=positive\|test=neg) = 0.002% P(cancer=positive\|test=positive) = 2.3% This means that so called false negatives are rare, but true positives are also very low. This means that very few of those who test positive actually have cancer only 2,3% meaning that it will send approximately 50 times too many people to further tests and thus does not do what it's planned to do. This happens since the percentage of people actually having cancer is very small.
+We compute the following numbers: P(cancer=positive\|test=neg) = 0.002% P(cancer=positive\|test=positive) = 2.3%. This means that so called false negatives are extremely rare, but true positives are also very low. This means that very few of those who test positive actually have cancer, only 2,3%, meaning that it will send approximately 50 times too many people to further tests. Thus, the test does not do what it's planned to do, i.e. reduce the amount of expensive tests, very well.
 
-### 4. Bayes’ theorem
+## 4. Bayes' theorem
 
-#### a
+### a)
 
 ```{r}
 rm(list = ls())
@@ -120,9 +130,9 @@ p_red(boxes = boxes)
 
 ```
 
-There is a approximately 28.4% of picking a red ball.
+Using the law of total probability and bayes' rule we can calculate that there is a approximately 28.4% of picking a red ball.
 
-#### b
+### b)
 
 ```{r}
 p_box = function(boxes){
@@ -142,9 +152,9 @@ p_box = function(boxes){
 p_box(boxes = boxes)
 ```
 
-### 5. Bayes’ theorem
+Using Bayes' rule we can compute the different probabilities of which box we have likely picked when we have picked a red ball. Based on our result, visible above, we can conclude that it's most probable to be box C with a probability of 39,14% .
 
-#### a
+## 5. Bayes' theorem
 
 ```{r}
 p_identical_twin = function(fraternal_prob, identical_prob){
@@ -154,15 +164,9 @@ p_identical_twin = function(fraternal_prob, identical_prob){
   P_ident_con_twin_boy = P_ident_and_twin_boy/(P_ident_and_twin_boy+P_frat_and_twin_boy)
   return(P_ident_con_twin_boy)
 }
-p_identical_twin(fraternal_prob = 1/150, identical_prob = 1/400)
+P_res = p_identical_twin(fraternal_prob = 1/150, identical_prob = 1/400) 
+paste0("Probability of identical twin: ", round(P_res,4)*100,"%")
 
 ```
 
-```{r}
-library(markmyassignment)
-assignment_path <-  paste("https://github.com/avehtari/BDA_course_Aalto/","blob/master/assignments/tests/assignment1.yml", sep="")
-set_assignment(assignment_path)
-#show_tasks()
-mark_my_assignment()
-
-```
+We can see that by using Bayes' rule we can compute the probability of Elvis being a identical twin is approximately 42.86%.
