@@ -7,25 +7,104 @@ output:
     toc_depth: 2
 urlcolor: blue
 ---
+
 # Inference for binomial proportion
+
+## a)
 
 We begin by importing the data and setting up the test data.
 
 ```{r}
+library(aaltobda)
 rm(list = ls())
 algae_test = c(0, 1, 1, 0, 0, 0)
-library(aaltobda)
 data("algae")
 ```
 
+We we know that $\pi = Beta(2,10)$ and that y follows a binomial model. We can formulate the likelihood $p(y|\pi)$ as
 
+$$
+  p(y|\pi) = {n\choose y}\pi^y(1-\pi)^{n-y} \\
+$$ and the prior $p(\pi)$ as
 
+$$
+  p(\pi) = Beta(2,10).
+$$
+
+Using this information, we can formulate the posterior as $$
+  p(\pi|y) = {n\choose y}\pi^y(1-\pi)^{n-y} \cdot p(\pi) \\
+  = Beta(\pi | 2+y,10+n-y) \\
+$$
 
 ```{r}
- library(markmyassignment)
-> assignment_path <-
-paste("https://github.com/avehtari/BDA_course_Aalto/",
+n = length(algae)
+y = sum(algae)
+alpha = 2+y
+beta = 10+n-y
+```
+
+Using the above calculations we get that the posterior is $$
+  p(\pi|y) = Beta(46,240)
+$$ \#\# b)
+
+We know that the posterior mean $E[\pi|y] = \frac{\alpha + y}{\alpha + \beta +n}$
+
+```{r}
+beta_point_est = function( prior_alpha, prior_beta, data){
+  n = length(data)
+  y = sum(data)
+  num = prior_alpha + y
+  denum = prior_alpha + prior_beta + n
+  return(num/denum)
+}
+beta_point_est(prior_alpha = 46, prior_beta = 240, data = algae)
+```
+
+```{r}
+beta_interval = function(prior_alpha, prior_beta, data, prob){
+  lower = (1-prob)/2
+  upper = prob+lower
+  interval = c(lower,upper)
+  n = length(data)
+  y = sum(data)
+  post_alpha = prior_alpha + y
+  post_beta = prior_beta + n - y
+  res = qbeta(interval, post_alpha, post_beta)
+  return(res)
+}
+beta_interval(prior_alpha = 2, prior_beta = 10, data = algae, prob = 0.9)
+```
+
+## c)
+
+```{r}
+beta_low = function(prior_alpha, prior_beta, data, pi_0){
+  n = length(data)
+  y = sum(data)
+  post_alpha = prior_alpha + y
+  post_beta = prior_beta + n - y
+  res = pbeta(pi_0, post_alpha, post_beta)
+  return(res)
+}
+beta_low(prior_alpha = 2, prior_beta = 10, data = algae, pi_0 = 0.2)
+         
+```
+
+So there's approximately a $95,9\%$ chance of being less than $0.2$.
+
+## d)
+
+We have assumed that $\pi$ is continuous.
+
+```{r}
+
+```
+
+```{r}
+library(markmyassignment)
+assignment_path <- paste("https://github.com/a 8034vehtari/BDA_course_Aalto/",
 "blob/master/assignments/tests/assignment2.yml", sep="")
-> set_assignment(assignment_path)
+set_assignment(assignment_path)
+mark_my_assignment()
 
 ```
