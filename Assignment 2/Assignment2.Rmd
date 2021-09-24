@@ -16,6 +16,7 @@ We begin by importing the data and setting up the test data.
 
 ```{r}
 library(aaltobda)
+library(knitr)
 rm(list = ls())
 algae_test = c(0, 1, 1, 0, 0, 0)
 data("algae")
@@ -33,31 +34,42 @@ $$
 
 Using this information, we can formulate the posterior as $$
   p(\pi|y) = {n\choose y}\pi^y(1-\pi)^{n-y} \cdot p(\pi) \\
-  = Beta(\pi | 2+y,10+n-y) \\
+  = Beta(\pi | 2+y,10+n-y).
 $$
-
+We use create a function to calculate the posterior alpha and betas, which will also be useful later.
 ```{r}
-n = length(algae)
-y = sum(algae)
-alpha = 2+y
-beta = 10+n-y
+prior_to_post = function(prior_alpha, prior_beta, data) {
+  n = length(data)
+  y = sum(data)
+  post_alpha = prior_alpha+y
+  post_beta = prior_beta+n-y
+  res = list(alpha=post_alpha, beta = post_beta)
+  return(res)
+}
+res = prior_to_post(2,10,algae) 
+alpha = res$alpha
+beta = res$beta
+paste0("alpha: ", alpha)
+paste0("beta: ", beta)
 ```
 
-Using the above calculations we get that the posterior is $$
+Using the above calculations we get that the posterior is
+$$
   p(\pi|y) = Beta(46,240)
-$$ \#\# b)
+$$ 
+
+## b)
 
 We know that the posterior mean $E[\pi|y] = \frac{\alpha + y}{\alpha + \beta +n}$
 
 ```{r}
 beta_point_est = function( prior_alpha, prior_beta, data){
-  n = length(data)
-  y = sum(data)
-  num = prior_alpha + y
-  denum = prior_alpha + prior_beta + n
-  return(num/denum)
+  res = prior_to_post(prior_alpha,prior_beta,data) 
+  alpha = res$alpha
+  beta = res$beta
+  return(alpha/(alpha+beta))
 }
-beta_point_est(prior_alpha = 46, prior_beta = 240, data = algae)
+beta_point_est(prior_alpha = 2, prior_beta = 10, data = algae)
 ```
 
 ```{r}
@@ -65,11 +77,10 @@ beta_interval = function(prior_alpha, prior_beta, data, prob){
   lower = (1-prob)/2
   upper = prob+lower
   interval = c(lower,upper)
-  n = length(data)
-  y = sum(data)
-  post_alpha = prior_alpha + y
-  post_beta = prior_beta + n - y
-  res = qbeta(interval, post_alpha, post_beta)
+  res = prior_to_post(prior_alpha,prior_beta,data) 
+  alpha = res$alpha
+  beta = res$beta
+  res = qbeta(interval, alpha, beta)
   return(res)
 }
 beta_interval(prior_alpha = 2, prior_beta = 10, data = algae, prob = 0.9)
@@ -79,32 +90,82 @@ beta_interval(prior_alpha = 2, prior_beta = 10, data = algae, prob = 0.9)
 
 ```{r}
 beta_low = function(prior_alpha, prior_beta, data, pi_0){
-  n = length(data)
-  y = sum(data)
-  post_alpha = prior_alpha + y
-  post_beta = prior_beta + n - y
-  res = pbeta(pi_0, post_alpha, post_beta)
+  res = prior_to_post(prior_alpha,prior_beta,data) 
+  alpha = res$alpha
+  beta = res$beta
+  res = pbeta(pi_0, alpha, beta)
   return(res)
 }
 beta_low(prior_alpha = 2, prior_beta = 10, data = algae, pi_0 = 0.2)
-         
+  
 ```
 
 So there's approximately a $95,9\%$ chance of being less than $0.2$.
 
 ## d)
 
-We have assumed that $\pi$ is continuous.
+We have assumed that $\pi$ is continuous. We have, additionally, assumed that all the monitoring sites are independent of each either and behave identically. I.e. we have assumed that our data is i.i.d.. We have also assumed that the algae status is binary, there is or there is not algae in the water. These are the requirements for us to be able to use binomial- and, by extension, beta-distributions on the data.
+
+## e)
 
 ```{r}
+E = 0.2
+prior_alpha = c(1,2,5,10,100)
+prior_beta = c(1,-(prior_alpha[-1]/E)*(E-1))
+res = prior_to_post(prior_alpha,prior_beta,algae) 
+alpha = res$alpha
+beta = res$beta
+x= seq(from=0,to=1, by=1/270)
+betapdf1 = dbeta(x,alpha[1],beta[1])
+betapdf2 = dbeta(x,alpha[2],beta[2])
+betapdf3 = dbeta(x,alpha[3],beta[3])
+betapdf4 = dbeta(x,alpha[4],beta[4])
+betapdf5 = dbeta(x,alpha[5],beta[5])
+par(mfrow=c(1,1))
+plot(x, betapdf1,
+     type='l', col='black',
+     ylim=c(0,35),
+     xlim=c(0,0.4),
+     ylab="PDF")
+leg1 = paste0("Uniform: alpha: ",prior_alpha[1], ", beta: ", prior_beta[1])
 
+lines(x, betapdf2,
+     type='l', col ='blue')
+leg2 = paste0("Beta: alpha: ",prior_alpha[2], ", beta: ", prior_beta[2])
+
+lines(x, betapdf3,
+     type='l', col ='purple')
+leg3 = paste0("Beta: alpha: ",prior_alpha[3], ", beta: ", prior_beta[3])
+
+lines(x, betapdf4,
+     type='l', col ='red')
+leg4 = paste0("Beta: alpha: ",prior_alpha[4], ", beta: ", prior_beta[4])
+
+lines(x, betapdf5,
+     type='l', col ='orange')
+leg5 = paste0("Beta: alpha: ",prior_alpha[5], ", beta: ", prior_beta[5])
+
+legend(0.235,30, legend=c(leg1, leg2, leg3, leg4, leg5),
+       col=c("black", "blue", "purple", "red", "orange"), lty=1, cex=0.8)  
 ```
 
-```{r}
-library(markmyassignment)
-assignment_path <- paste("https://github.com/a 8034vehtari/BDA_course_Aalto/",
-"blob/master/assignments/tests/assignment2.yml", sep="")
-set_assignment(assignment_path)
-mark_my_assignment()
+We can see that increasing the prior knowledge makes the beta posterior distribution narrower and shifts towards the prior mean.
+From the table below, we can see that the posterior means are all still within the interval we got in the b part. When the prior knowledge, $\alpha + \beta$ is of the magnitude 500 is the posterior mean is barely outside the 90% interval.
 
+
+```{r, echo=FALSE}
+post_mean = alpha/(alpha+beta)
+vec_alpha_beta = c("Prior alpha + beta", prior_alpha + prior_beta)
+vec_prior_mean = c("Prior mean", round(prior_alpha /(prior_alpha + prior_beta), digits=3))
+vec_post_mean = c("Post mean", round(alpha/(alpha+beta), digits=3))
+vec_interval_upper = numeric(5)
+vec_interval_lower = numeric(5)
+for(i in 1:5){
+  int = beta_interval(prior_alpha = prior_alpha[i], prior_beta = prior_beta[i], data = algae, prob = 0.9)
+  vec_interval_lower[i] = round(int[1],digits=3)
+  vec_interval_upper[i] = round(int[2],digits=3)
+}
+info_frame = data.frame(vec_alpha_beta[-1],vec_prior_mean[-1],vec_post_mean[-1],vec_interval_lower,vec_interval_upper)
+names(info_frame) = c(vec_alpha_beta[1],vec_prior_mean[1],vec_post_mean[1], "90% interval lower bound", "upper bound")
+kable(info_frame)
 ```
