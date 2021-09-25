@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6930 64-bit) (preloaded format=pdflatex 2019.1.22)  24 SEP 2021 11:36
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6930 64-bit) (preloaded format=pdflatex 2019.1.22)  25 SEP 2021 12:51
 entering extended mode
 **./Assignment2.tex
 (Assignment2.tex
@@ -783,38 +783,38 @@ LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
 
 {C:/Users/Christian Segercrant/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.ma
 p}] [2]
-LaTeX Font Info:    Try loading font information for TS1+lmtt on input line 296
+LaTeX Font Info:    Try loading font information for TS1+lmtt on input line 304
 .
 ("C:\Program Files\MiKTeX 2.9\tex/latex/lm\ts1lmtt.fd"
 File: ts1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
-<Assignment2_files/figure-latex/unnamed-chunk-6-1.pdf, id=44, 469.755pt x 325.2
+<Assignment2_files/figure-latex/unnamed-chunk-6-1.pdf, id=43, 469.755pt x 325.2
 15pt>
 File: Assignment2_files/figure-latex/unnamed-chunk-6-1.pdf Graphic file (type p
 df)
 <use Assignment2_files/figure-latex/unnamed-chunk-6-1.pdf>
 Package pdftex.def Info: Assignment2_files/figure-latex/unnamed-chunk-6-1.pdf  
-used on input line 323.
+used on input line 331.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
 [3]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 346.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 354.
 [4 <./Assignment2_files/figure-latex/unnamed-chunk-6-1.pdf>]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 346.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 354.
 (Assignment2.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 346.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 346.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 354.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 354.
  ) 
 Here is how much of TeX's memory you used:
- 13882 strings out of 492946
- 203022 string characters out of 3135480
+ 13883 strings out of 492946
+ 203011 string characters out of 3135480
  335162 words of memory out of 3000000
- 17511 multiletter control sequences out of 15000+200000
- 51965 words of font info for 69 fonts, out of 3000000 for 9000
+ 17509 multiletter control sequences out of 15000+200000
+ 51812 words of font info for 70 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 35i,6n,38p,812b,373s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 35i,6n,38p,812b,455s stack positions out of 5000i,500n,10000p,200000b,50000s
 {C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ts1.enc}{C:/Program Files/
-MiKTeX 2.9/fonts/enc/dvips/lm/lm-ec.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc/
-dvips/lm/lm-rm.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathsy.en
+MiKTeX 2.9/fonts/enc/dvips/lm/lm-rm.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc/
+dvips/lm/lm-ec.enc}{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathsy.en
 c}{C:/Program Files/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathit.enc}{C:/Program Fil
 es/MiKTeX 2.9/fonts/enc/dvips/lm/lm-mathex.enc}<C:/Program Files/MiKTeX 2.9/fon
 ts/type1/public/lm/lmbx10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/l
@@ -826,11 +826,10 @@ pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmr17.pfb><C:/Program Fi
 les/MiKTeX 2.9/fonts/type1/public/lm/lmr7.pfb><C:/Program Files/MiKTeX 2.9/font
 s/type1/public/lm/lmsy10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm
 /lmsy7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmtk10.pfb><C:/Pr
-ogram Files/MiKTeX 2.9/fonts/type1/public/lm/lmtt10.pfb><C:/Program Files/MiKTe
-X 2.9/fonts/type1/public/lm/lmtti10.pfb>
-Output written on Assignment2.pdf (4 pages, 234872 bytes).
+ogram Files/MiKTeX 2.9/fonts/type1/public/lm/lmtt10.pfb>
+Output written on Assignment2.pdf (4 pages, 232387 bytes).
 PDF statistics:
- 138 PDF objects out of 1000 (max. 8388607)
+ 134 PDF objects out of 1000 (max. 8388607)
  19 named destinations out of 1000 (max. 500000)
  10294 words of extra memory for PDF output out of 12000 (max. 10000000)
 
