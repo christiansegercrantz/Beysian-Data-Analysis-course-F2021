@@ -1,0 +1,79 @@
+---
+title: "BDA - Assignment 1"
+date: "9/15/2021"
+output: 
+  pdf_document: 
+    toc: yes
+    toc_depth: 2
+urlcolor: blue
+output: pdf_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+rm(list = ls())
+library(aaltobda)
+data("windshieldy1")
+windshieldy_test <- c(13.357, 14.928, 14.896, 14.820)
+head(windshieldy1)
+
+```
+# 1
+
+In the exercise we will be using a uninformative prior $p(\mu,\sigma^2)\propto \frac{1}{\sigma}$. The likelihood is the normal distribution $p(y|\mu,\sigma^2) = \mathcal{N}(\mu,\sigma^2)$. We get the posterior by the product $p(\mu,\sigma^2)p(y|\mu,\sigma^2) = \frac{\mathcal{N}(\mu,\sigma^2)}{\sigma}$.
+
+The marginalized posterior density for $\mu$ follows Student's t distribution $t_{n-1}(\bar{y},s^2/n)$ where.
+
+## a)
+We define, as in the demos, helper functions.
+```{r}
+
+```
+
+Sufficient statistics:
+```{r}
+n <- length(windshieldy_test)
+s2 <- var(windshieldy_test)
+my <- mean(windshieldy_test)
+```
+
+We will calculate a point estimate as the mean. The mean of the posterior can simply be calculated as:
+```{r}
+mu_point_est = function(data){
+  return(mean(data))
+}
+
+mu_interval = function(data, prob){
+  mu = mu_point_est(data)
+  n = length(data)
+  var = 1/(n-1)*sum((data-mu)^2)
+  freedom = n-1
+  scale = sqrt(var/n)
+  low = (1-prob)/2
+  high= 1-low
+  int = c(low,high)
+  qt_scl <- qt(int,freedom)
+  res = c(mu + qt_scl[1]*scale, mu + qt_scl[2]*scale)
+  return(res)
+}
+
+```
+Test data:
+```{r}
+mu_point_est(windshieldy_test)
+mu_interval(data = windshieldy_test, prob = 0.95)
+
+```
+Real data: 
+```{r}
+mu_point_est(windshieldy1)
+mu_interval(data = windshieldy1, prob = 0.95)
+```
+```{r}
+  n = length(windshieldy1)
+  x = seq(from=-10,to=10, by=0.1)
+  freedom = n-1
+  density = dt(x, freedom)
+  plot(x,density,
+       xlab = 'x',
+       type='l')
+```
