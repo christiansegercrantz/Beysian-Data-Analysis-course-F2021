@@ -77,3 +77,39 @@ mu_interval(data = windshieldy1, prob = 0.95)
        xlab = 'x',
        type='l')
 ```
+
+## b)
+In order to predict a future value we need the future posterior predictive distribution. The distribution is a student-t distribution with location $\bar{y}$, scale $(1+\frac{1}{n})^{1/2}s$ and n-1 degress of freedom.
+
+```{r}
+mu_pred_point_est = function(data){
+  return(mean(data))
+}
+
+mu_pred_interval = function(data, prob){
+  mu = mu_point_est(data)
+  n = length(data)
+  var = 1/(n-1)*sum((data-mu)^2)
+  freedom = n-1
+  scale = sqrt((1+1/n)*var)
+  low = (1-prob)/2
+  high= 1-low
+  int = c(low,high)
+  qt_scl <- qt(int,freedom)
+  res = c(mu + qt_scl[1]*scale, mu + qt_scl[2]*scale)
+  return(res)
+}
+```
+
+
+```{r, include=FALSE, echo=FALSE}
+#Test data:
+mu_pred_point_est(data = windshieldy_test)
+mu_pred_interval(data = windshieldy_test, prob = 0.95)
+```
+
+```{r}
+mu_pred_point_est(data = windshieldy1)
+mu_pred_interval(data = windshieldy1, prob = 0.95)
+```
+
