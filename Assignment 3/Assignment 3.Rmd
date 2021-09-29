@@ -15,7 +15,6 @@ library(aaltobda)
 data("windshieldy1")
 windshieldy_test <- c(13.357, 14.928, 14.896, 14.820)
 head(windshieldy1)
-
 ```
 # 1
 
@@ -24,17 +23,6 @@ In the exercise we will be using a uninformative prior $p(\mu,\sigma^2)\propto \
 The marginalized posterior density for $\mu$ follows Student's t distribution $t_{n-1}(\bar{y},s^2/n)$ where.
 
 ## a)
-We define, as in the demos, helper functions.
-```{r}
-
-```
-
-Sufficient statistics:
-```{r}
-n <- length(windshieldy_test)
-s2 <- var(windshieldy_test)
-my <- mean(windshieldy_test)
-```
 
 We will calculate a point estimate as the mean. The mean of the posterior can simply be calculated as:
 ```{r}
@@ -45,9 +33,8 @@ mu_point_est = function(data){
 mu_interval = function(data, prob){
   mu = mu_point_est(data)
   n = length(data)
-  var = 1/(n-1)*sum((data-mu)^2)
   freedom = n-1
-  scale = sqrt(var/n)
+  scale = sqrt(var(data)/n)
   low = (1-prob)/2
   high= 1-low
   int = c(low,high)
@@ -58,7 +45,7 @@ mu_interval = function(data, prob){
 
 ```
 Test data:
-```{r}
+```{r, echo=FALSE, include=FALSE}
 mu_point_est(windshieldy_test)
 mu_interval(data = windshieldy_test, prob = 0.95)
 
@@ -76,6 +63,7 @@ mu_interval(data = windshieldy1, prob = 0.95)
   plot(x,density,
        xlab = 'x',
        type='l')
+  #Add the ablines
 ```
 
 ## b)
@@ -112,4 +100,177 @@ mu_pred_interval(data = windshieldy_test, prob = 0.95)
 mu_pred_point_est(data = windshieldy1)
 mu_pred_interval(data = windshieldy1, prob = 0.95)
 ```
+
+```{r}
+  n = length(windshieldy1)
+  x = seq(from=-10,to=10, by=0.1)
+  freedom = n-1
+  density = dt(x, freedom)
+  plot(x,density,
+       xlab = 'x',
+       type='l')
+  #Add the ablines
+```
+
+# 2
+```{r, include=FALSE, echo=FALSE}
+rm(list = ls())
+```
+The likelihood $p(y|\pi) = {n\choose y}\pi^y(1-\pi)^{n-y}$, the prior $p(\pi)= Beta(\alpha,\beta)$ and thus the likely hood becomes $ p(\pi|y) = Beta(\pi | \alpha+y,\beta+n-y)$.
+Using a uniform Beta, $Beta(1,1)$ as our weakly informative prior we get that the posterir is $p(\pi|y) = Beta(\pi | 1+y,1+n-y)$
+##  a
+
+```{r}
+posterior_odds_ratio_point_est = function(p0, p1){
+  ratio = (p1/(1 - p1))/(p0/(1 - p0))
+  return(mean(ratio))
+}
+
+ posterior_odds_ratio_interval = function(p0, p1, prob){
+  data = (p1/(1 - p1))/(p0/(1 - p0))
+  lower = (1-prob)/2
+  upper = prob+lower
+  interval = c(lower,upper)
+  res = quantile(data,interval)
+  return(res)
+}
+```
+
+```{r, echo=false, include=FALSE}
+set.seed(4711)
+p0 <- rbeta(100000, 5, 95)
+p1 <- rbeta(100000, 10, 90)
+posterior_odds_ratio_point_est(p0 = p0, p1 = p1)
+posterior_odds_ratio_interval(p0 = p0, p1 = p1, prob = 0.9)
+```
+
+```{r}
+n0 = 674
+y0 = 39
+n1 = 680
+y1 = 22
+  
+prior_alpha = 1
+prior_beta = 1
+
+post_alpha0 = prior_alpha + n0 - y0
+post_beta0 = prior_beta + y0
+
+post_alpha1 = prior_alpha + n1 - y1
+post_beta1 = prior_beta + y1
+
+p0 <- rbeta(100000, post_alpha0, post_beta0)
+p1 <- rbeta(100000, post_alpha1, post_beta1)
+
+point_est = posterior_odds_ratio_point_est(p0 = p0, p1 = p1)
+interval = posterior_odds_ratio_interval(p0 = p0, p1 = p1, prob = 0.95)
+paste0("Point estimate: ", point_est)
+paste0("Interval: ", interval)
+```
+```{r}
+ratio = (p1/(1 - p1))/(p0/(1 - p0))
+hist(ratio, breaks=50)
+abline(v = interval[1], col='red')
+abline(v = interval[2], col='red')
+abline(v = point_est, col='blue')
+```
+
+## b)
+
+By using a uniform prior, $\alpha = \beta = 1$, we have decided to "let the data speak for itself". The sum $\alpha + \beta = 2$ essentially tells us how much prior data we have used. We will now use different values for $\alpha$ and $\beta$ and plot our results.
+
+```{r}
+prior_alpha = c(0.1,0.5,1,5,100)
+prior_beta = prior_alpha
+
+post_alpha0 = numeric(length(prior_alpha))
+post_beta0 = numeric(length(prior_alpha))
+post_alpha1 = numeric(length(prior_alpha))
+post_beta1 = numeric(length(prior_alpha))
+p0 = numeric(length(prior_alpha))
+p1 = numeric(length(prior_alpha))
+point_est = numeric(length(prior_alpha))
+interval = numeric(length(prior_alpha)*2)
+
+post_alpha0 = prior_alpha + n0 - y0
+post_beta0 = prior_beta + y0
+
+post_alpha1 = prior_alpha + n1 - y1
+post_beta1 = prior_beta + y1
+
+
+
+for(i in 1:length(prior_alpha)){
+  p0 <- rbeta(100000, post_alpha0[i], post_beta0[i])
+  p1 <- rbeta(100000, post_alpha1[i], post_beta1[i])
+  point_est = posterior_odds_ratio_point_est(p0 = p0, p1 = p1)
+  interval = posterior_odds_ratio_interval(p0 = p0, p1 = p1, prob = 0.95)
+  ratio = (p1/(1 - p1))/(p0/(1 - p0))
+  hist(ratio,
+       breaks=50,
+       main=paste0("Histogram using prior alpha = ", prior_alpha[i], " and beta = ", prior_beta[i]),
+       xlim=c(0,5))
+  abline(v = interval[1], col='red')
+  abline(v = interval[2], col='red')
+  abline(v = point_est, col='blue')
+  legend(3.5,8000, legend=c("Data", "95-Interval", "Mean"),col=c("grey", "red", "blue"), lty=1, cex=0.8) 
+}
+```
+As we can see from the plots, small values for our parameters barely change the point estimate nor the interval. Thus, the posterior is not very sensitive to changes in the prior as long as they are small. Using large numbers has a large affect on the posterior distribution, but that might not be considered noninformative or weakly informative.
+
+# 3
+In the exercise we will be using a uninformative prior $p(\mu,\sigma^2)\propto \frac{1}{\sigma}$. The likelihood is the normal distribution $p(y|\mu,\sigma^2) = \mathcal{N}(\mu,\sigma^2)$. We get the posterior by the product $p(\mu,\sigma^2)p(y|\mu,\sigma^2) = \frac{\mathcal{N}(\mu,\sigma^2)}{\sigma}$.
+
+The marginalized posterior density for $\mu$ follows Student's t distribution $t_{n-1}(\bar{y},s^2/n)$ where.
+## a
+```{r}
+#rm(list = ls())
+data("windshieldy1")
+data("windshieldy2")
+
+```
+
+```{r}
+mu_point_est = function(data){
+  return(mean(data))
+}
+
+n1 = length(windshieldy1)
+df1 = n1 - 1
+mu1 = mu_point_est(windshieldy1)
+scale1 = sqrt(var(windshieldy1)/n1)
+
+n2 = length(windshieldy2)
+df2 = n2 - 1
+mu2 = mu_point_est(windshieldy2)
+scale2 = sqrt(var(windshieldy2)/n2)
+
+n_samples <- 100000
+samples1 <- rtnew(n_samples, df=df1, mean = mu1, scale = scale1)
+samples2 <- rtnew(n_samples, df=df2, mean = mu2, scale = scale2)
+
+mu_d <- mu1 - mu2
+#mu_d = mean(samples1-samples2)
+paste0("Difference in the means are: ", mu_d)
+```
+```{r}
+mu_d_interval = function(samples1, samples2, prob){
+  low = (1-prob)/2
+  high = prob+low
+  int = c(low,high)
+  sample = samples1-samples2
+  res = quantile(sample, int)
+}
+interval = mu_d_interval(samples1 = samples1, samples2 = samples2, 0.95)
+paste0("Interval low: ", interval[1], " and high: ", interval[2])
+hist(samples1-samples2,
+       breaks=50)
+  abline(v = interval[1], col='red')
+  abline(v = interval[2], col='red')
+  abline(v = mu_d, col='blue')
+  legend(0.2 ,8000, legend=c("Data", "95-Interval", "mu_d"),col=c("grey", "red", "blue"), lty=1, cex=0.8) 
+```
+## b
+
+For any continuous variable, the probability to take on any exact value, i.e. the point density value, is 0. Hence is $P(\mu_d = 0) = 0$. Based on the credible intervals we can see that 0 is within the 95-interval, but quite close to the edge. This means that it's not very likely.
 
