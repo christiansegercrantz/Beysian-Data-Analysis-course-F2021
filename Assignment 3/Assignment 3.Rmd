@@ -6,11 +6,11 @@ output:
     toc: yes
     toc_depth: 2
 urlcolor: blue
-output: pdf_document
 ---
 
 ```{r setup, include=FALSE, echo=FALSE}
 rm(list = ls())
+setwd("~/GitHub/Beysian-Data-Analysis-course-F2021/Assignment 3")
 library(aaltobda)
 data("windshieldy1")
 windshieldy_test <- c(13.357, 14.928, 14.896, 14.820)
@@ -253,6 +253,8 @@ mu_d <- mu1 - mu2
 #mu_d = mean(samples1-samples2)
 paste0("Difference in the means are: ", mu_d)
 ```
+As we can see, the differences in the means are `r round(mu_d, digits=3)`
+
 ```{r}
 mu_d_interval = function(samples1, samples2, prob){
   low = (1-prob)/2
