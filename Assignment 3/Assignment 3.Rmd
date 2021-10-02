@@ -91,7 +91,7 @@ mu_pred_interval = function(data, prob){
   mu = mu_point_est(data)
   n = length(data)
   freedom = n-1
-  scale = sqrt(var(data)/n)
+  scale = 1/(n-1)*sum((data-mu)^2)
   low = (1-prob)/2
   high= prob+low
   int = c(low,high)
@@ -117,9 +117,9 @@ The mean, used for the point estimate is 14.6 and the intervals lower bound 13.5
 
 ```{r}
 n = length(windshieldy1)
-x = seq(from=12,to=17, by=0.1)
+x = seq(from=5,to=25, by=0.1)
 freedom = n-1
-density = dtnew(x, freedom, mean=mu, scale=sqrt(var(windshieldy1)/n) )
+density = dtnew(x, freedom, mean=mu, scale=1/(n-1)*sum((windshieldy1-mu)^2))
 plot(x,density,
      xlab = 'x',
      type='l')
