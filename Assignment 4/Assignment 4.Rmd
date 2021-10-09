@@ -18,6 +18,8 @@ data("bioassay")
 
 # a)
 
+We begin by calculating the mean and the covariance matrix. The covariance matrix is calculated using the variance $\sigma^2$ and the covariance by the product of the standard variances scaled by the correlation $\sigma_\alpha \sigma_\beta \text{cor}(\alpha,\beta)$.
+
 ```{r}
 mean = c(0,10)
 corr = 0.6
@@ -29,7 +31,7 @@ mean
 cov
 ```
 
-The mean vector and the covariance matrix can be seen printed by the last cell.
+The mean vector is and the covariance matrix can be seen printed above.
 
 # b)
 
@@ -47,11 +49,13 @@ alpha_interval_MSCE = mcse_quantile(bioassay_posterior$alpha, 0.9)
 beta_interval_MSCE = mcse_quantile(bioassay_posterior$beta, 0.9)
 ```
 
-The mean alpha is `r round(alpha_mean, digits = 1)`.0 with MSCE `r round(alpha_mean_MSCE, digits=3)` and beta `r round(beta_mean, digits = 2)` with MSCE `r round(beta_mean_MSCE, digits=3)`.
+The mean alpha is `r round(alpha_mean, digits = 1)`.0 with MCSE `r round(alpha_mean_MSCE, digits=3)` and beta `r round(beta_mean, digits = 2)` with MSCE `r round(beta_mean_MSCE, digits=3)`.
 
 The qunatile interval for alpha is [`r round(alpha_interval, digits = 1)`] with a MSCE of `r round(alpha_interval_MSCE, digits=3)` and for beta [`r round(beta_interval, digits = 0)`] with a MSCE of `r round(beta_interval_MSCE, digits=3)`.
 
 <!-- Explain in words something -->
+
+The MSCE allows us to estimate how much inaccuracy or noise the simulation contains.
 
 # c)
 
@@ -75,6 +79,7 @@ liw = log_importance_weights(bioassay_posterior$alpha, bioassay_posterior$beta)
 The some of the log importance weights are: `r head(liw)`.
 
 <!-- Explain in words -->
+It's better to compute log ratios than to compute raw ratios  due to the two reasons. One reason is that for large numbers log ratios are smaller numbers and thus easier to handle computationally. The other is that for small numbers problems with floating point errors becomes small.
 
 # d
 
@@ -94,7 +99,9 @@ round(normalized_importance_weights(alpha = alpha, beta = beta),3)
 ```{r}
 niw = normalized_importance_weights(bioassay_posterior$alpha,bioassay_posterior$beta)
 ```
-The some of the nromalized importance weights are: `r head(niw)`.
+The some of the normalized importance weights are: `r head(niw)`.
+
+By exponenting we remove the logarithms to get the real ratios. By dividing so that the sum becomes one we normalize the ratios. This allows us to scale the samples based on their ratios.
 
 
 # e)
@@ -103,7 +110,9 @@ The some of the nromalized importance weights are: `r head(niw)`.
 n=4000
 draws = rmvnorm(n, mean, cov)
 normal_niw = normalized_importance_weights(draws[,1], draws[,2])
-hist(normal_niw)
+hist(normal_niw,
+     main = 'Histogram of the normalized weights',
+     xlab = 'Weights')
 ```
 
 ```{r}
