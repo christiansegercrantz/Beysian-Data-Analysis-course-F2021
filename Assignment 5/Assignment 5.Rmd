@@ -1,0 +1,137 @@
+---
+title: "BDA - Assignment 5"
+date: "17/10/2021"
+output: 
+  pdf_document: 
+    toc: yes
+    toc_depth: 2
+urlcolor: blue
+---
+
+```{r include=FALSE, echo=FALSE}
+rm(list = ls())
+setwd("~/GitHub/Beysian-Data-Analysis-course-F2021/Assignment 5")
+library(aaltobda)
+data("bioassay")
+library("rstan")
+```
+
+# 1
+
+We start by pre-calculating the mean $\mu$ and covariance metrics $\Sigma$
+
+```{r}
+corr = 0.6
+a_std = 2
+b_std = 10
+
+mu = c(0,10)
+sigma = matrix( c(a_std^2, a_std*b_std*corr, a_std*b_std*corr, b_std^2),nrow = 2)
+```
+
+We continue
+
+```{r}
+density_ratio = function(alpha_propose, alpha_previous, beta_propose, beta_previous, x, y, n){
+  likli_propose <- bioassaylp(alpha_propose, beta_propose, x, y, n)
+  likli_previous <- bioassaylp(alpha_previous, beta_previous, x, y, n)
+  
+  prior_prop <- dmvnorm(c(alpha_propose,beta_propose),mu, sigma, log = TRUE)
+  prior_prev <- dmvnorm(c(alpha_previous,beta_previous),mu, sigma, log = TRUE)
+  
+  prop = prior_prop + likli_propose
+  prev = prior_prev + likli_previous
+  
+  res = exp(prop - prev)
+  return(res)
+}
+
+```
+
+```{r, include=FALSE, echo=FALSE}
+#Test1
+density_ratio(alpha_propose = 1.89, alpha_previous = 0.374,
+beta_propose = 24.76, beta_previous = 20.04,
+x = bioassay$x, y = bioassay$y, n = bioassay$n)
+```
+
+```{r, include=FALSE, echo=FALSE}
+#Test2
+density_ratio(alpha_propose = 0.374, alpha_previous = 1.89,
+beta_propose = 20.04, beta_previous = 24.76,
+x = bioassay$x, y = bioassay$y, n = bioassay$n)
+```
+
+```{r}
+Metropolis_bioassay = function(n, alpha_previous, beta_previous, warmup_procent = 0.5){
+  alphas = c()
+  betas = c()
+  for( i in 1:n){
+    alpha_propose = rnorm(1, alpha_previous, 1)
+    beta_propose = rnorm(1, beta_previous, 5)
+    
+     r = density_ratio(alpha_propose = alpha_propose, alpha_previous = alpha_previous, beta_propose = beta_propose, beta_previous = beta_previous, x = bioassay$x, y = bioassay$y, n = bioassay$n)
+     r = min(1,r)
+     if(r >= runif(1)){
+       alpha_previous = alpha_propose
+       beta_previous = beta_propose
+     }
+    alphas[i] = alpha_previous
+    betas[i] = beta_previous
+  }
+  alpha_final = na.omit(alphas[n*warmup_procent+1:n])
+  beta_final = na.omit(betas[n*warmup_procent+1:n])
+  return(cbind(alpha_final,beta_final))
+}
+```
+
+```{r}
+n=2000
+warmup_procent = 0.5
+thetas1 = Metropolis_bioassay(n, 0, 10, warmup_procent)
+thetas2 = Metropolis_bioassay(n, 2, 15, warmup_procent)
+thetas3 = Metropolis_bioassay(n, -2, 5, warmup_procent)
+```
+
+```{r}
+plot(thetas1[,1],
+     type='l',
+     col='red',
+     ylab='alpha')
+lines(thetas2[,1],
+     type='l',
+     col='blue')
+lines(thetas3[,1],
+     type='l',
+     col='black')
+```
+
+```{r}
+plot(thetas1[,2],
+     type='l',
+     col='red',
+     ylab='beta')
+lines(thetas2[,2],
+     type='l',
+     col='blue')
+lines(thetas3[,2],
+     type='l',
+     col='black')
+```
+
+```{r}
+alphas = cbind(thetas1[,1],thetas2[,1],thetas3[,1])
+alpha_Rhat = Rhat(alphas)
+betas = cbind(thetas1[,2],thetas2[,2],thetas3[,2])
+betas_Rhat = Rhat(betas)
+```
+
+The values are $\widehat R_\alpha=$ `r round(alpha_Rhat,digits=3)` and $\widehat R_\beta=$ `r round(alpha_Rhat,digits=3)`.
+
+```{r}
+
+plot(thetas1[,1], thetas1[,2], col='red')
+points(thetas2[,1], thetas2[,2], col='red')
+points(thetas3[,1], thetas3[,2], col='red')
+
+```
