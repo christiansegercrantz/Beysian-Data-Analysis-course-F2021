@@ -3,8 +3,7 @@ title: "BDA - Assignment 5"
 date: "17/10/2021"
 output: 
   pdf_document: 
-    toc: yes
-    toc_depth: 2
+    toc: no
 urlcolor: blue
 ---
 
@@ -16,7 +15,6 @@ data("bioassay")
 library("rstan")
 ```
 
-# 1
 
 We start by pre-calculating the mean $\mu$ and covariance metrics $\Sigma$
 
@@ -29,7 +27,9 @@ mu = c(0,10)
 sigma = matrix( c(a_std^2, a_std*b_std*corr, a_std*b_std*corr, b_std^2),nrow = 2)
 ```
 
-We continue
+In this assignment we will use a Metropolis algorithm. The algorithm is a adaption of a random walk algorithm. At each iteration, the algorithm draws a sample from a so called jumping algorithm and either accepts or rejects the draw. The following iteration of the algorithm then uses the previously accepted draw as parameter for the jumping distribution. We then discard a warmup sample to get the final draws. 
+
+In this assignment we will use a normal distributions $\mathcal{N}(\mu,\sigma)$ as jumping distribution separately for $\alpha$ and $\beta$.
 
 ```{r}
 density_ratio = function(alpha_propose, alpha_previous, beta_propose, beta_previous, x, y, n){
@@ -89,9 +89,15 @@ Metropolis_bioassay = function(n, alpha_previous, beta_previous, warmup_procent 
 ```{r}
 n=2000
 warmup_procent = 0.5
-thetas1 = Metropolis_bioassay(n, 0, 10, warmup_procent)
-thetas2 = Metropolis_bioassay(n, 2, 15, warmup_procent)
-thetas3 = Metropolis_bioassay(n, -2, 5, warmup_procent)
+alpha1 = mu[1]
+alpha2 = mu[1]+sqrt(sigma[1,1])
+alpha3 = mu[1]-sqrt(sigma[1,1])
+beta1 = mu[2] 
+beta2 = mu[2] + sqrt(sigma[2,2])
+beta3 = mu[2] - sqrt(sigma[2,2])
+thetas1 = Metropolis_bioassay(n, alpha1, beta1, warmup_procent)
+thetas2 = Metropolis_bioassay(n, alpha2, beta2, warmup_procent)
+thetas3 = Metropolis_bioassay(n, alpha3, beta3, warmup_procent)
 ```
 
 We will simulate 3 different chains using different initial starting points. The points are chosen as the priors means as well as one standard deviations in both positive and negative direction. This gives us the starting points $\alpha_{init} = [0,2,-2]$ and $\beta_{init} = [10,15,5]$. We draw $n=$ `r n` draws for each chain and use a warm-up length of half the chain, i.e. $n_{warmup}=$ `r n*warmup_procent`.
@@ -121,15 +127,22 @@ lines(thetas3[,2],
      type='l',
      col='black')
 ```
+Visually we can see that for both parameters, the chains have good overlap and stay withing a the same interval. Natural noise will occur, but the chains have significant overlap.
+
 
 ```{r}
 alphas = cbind(thetas1[,1],thetas2[,1],thetas3[,1])
 alpha_Rhat = Rhat(alphas)
 betas = cbind(thetas1[,2],thetas2[,2],thetas3[,2])
-betas_Rhat = Rhat(betas)
+beta_Rhat = Rhat(betas)
 ```
 
-The values are $\widehat R_\alpha=$ `r round(alpha_Rhat,digits=3)` and $\widehat R_\beta=$ `r round(alpha_Rhat,digits=3)`.
+$\widehat R$ is a diagnostic tool for evaluating the convergence of parameters. $\widehat R$ takes into account both the in-chain variance as well as the between chain variance to give a value for the convergence. If $\widehat R < 1.05$ then the chains have converged well, otherwise they have not.
+
+We choose to use the implementation of $\widehat R$ from the Rstan package.
+The values are $\widehat R_\alpha=$ `r round(alpha_Rhat,digits=3)` and $\widehat R_\beta=$ `r round(beta_Rhat,digits=3)`. Since the value are less than 1.05, we can conclude that the chains have converged well enough.
+
+Below we have a scatter plot of the parameters. The results look similar to a binormal distribution. 
 
 ```{r}
 
