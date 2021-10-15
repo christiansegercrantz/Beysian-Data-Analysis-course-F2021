@@ -85,6 +85,7 @@ Metropolis_bioassay = function(n, alpha_previous, beta_previous, warmup_procent 
 }
 ```
 
+
 ```{r}
 n=2000
 warmup_procent = 0.5
@@ -92,6 +93,8 @@ thetas1 = Metropolis_bioassay(n, 0, 10, warmup_procent)
 thetas2 = Metropolis_bioassay(n, 2, 15, warmup_procent)
 thetas3 = Metropolis_bioassay(n, -2, 5, warmup_procent)
 ```
+
+We will simulate 3 different chains using different initial starting points. The points are chosen as the priors means as well as one standard deviations in both positive and negative direction. This gives us the starting points $\alpha_{init} = [0,2,-2]$ and $\beta_{init} = [10,15,5]$. We draw $n=$ `r n` draws for each chain and use a warm-up length of half the chain, i.e. $n_{warmup}=$ `r n*warmup_procent`.
 
 ```{r}
 plot(thetas1[,1],
@@ -130,7 +133,11 @@ The values are $\widehat R_\alpha=$ `r round(alpha_Rhat,digits=3)` and $\widehat
 
 ```{r}
 
-plot(thetas1[,1], thetas1[,2], col='red')
+plot(thetas1[,1], thetas1[,2],
+     col='red',
+     xlab='alpha',
+     ylab="beta",
+     main="Draws of the parameters")
 points(thetas2[,1], thetas2[,2], col='red')
 points(thetas3[,1], thetas3[,2], col='red')
 
