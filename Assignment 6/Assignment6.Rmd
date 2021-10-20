@@ -1,0 +1,126 @@
+---
+title: "BDA - Assignment 6"
+date: "24/10/2021"
+output: 
+  pdf_document: 
+    toc: no
+urlcolor: blue
+---
+
+```{r include=FALSE, echo=FALSE}
+rm(list = ls())
+setwd("~/GitHub/Beysian-Data-Analysis-course-F2021/Assignment 6")
+library(aaltobda)
+library("rstan")
+data("bioassay")
+```
+
+# 1
+
+We start by pre-calculating the mean $\mu$ and covariance metrics $\Sigma$
+
+```{r}
+corr = 0.6
+a_std = 2
+b_std = 10
+
+mu = c(0,10)
+sigma = matrix( c(a_std^2, a_std*b_std*corr, a_std*b_std*corr, b_std^2),nrow = 2)
+```
+
+Here is the stan model used for the assignment
+
+```{stan, output.var="stanmodel"}
+data {
+  int<lower=0> N;
+  vector[N] x;
+  int<lower=0> n[N];
+  int<lower=0> y[N];
+  vector[2] mu; 
+  matrix[2,2] sigma;
+}
+
+parameters {
+  vector[2] theta; 
+}
+
+model {
+  theta ~ multi_normal(mu, sigma);
+  for (k in 1:N) {
+    y[k] ~ binomial_logit(n[k],theta[1] + theta[2]*x[k]);
+  }
+  
+}
+```
+
+Let us create the data used by the stan file. 
+
+```{r, message=FALSE, warning=FALSE}
+data <- list(
+  N = length(bioassay$x),
+  x = bioassay$x,
+  n = bioassay$n,
+  y = bioassay$y,
+  mu = mu,
+  sigma = sigma 
+)
+```
+
+```{r}
+fit1 = sampling(stanmodel,
+  data = data,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+We have chosen to use a chain length of 2000 with a warmup of 1000. We are simulating 4 chains.
+
+Let us print the model
+```{r}
+print(fit1)
+```
+
+and here we can see how the paramters alpha and beta are distributed
+
+```{r, message=FALSE, warning=FALSE}
+plot(fit1, probs=c(.05,.5,.95))
+```
+We can now plot all chains to examine graphically if they converge.
+```{r}
+traceplot(fit1, inc_warmup = TRUE, nrow = 2)
+```
+
+# 2
+
+We use the built in function for Rhat from Rstan
+
+```{r}
+diagnostics = monitor(fit1)
+```
+
+The $\widehat R_{\alpha}$ is `r round(diagnostics$Rhat[1],digits=2)`.00 and $\widehat R_{\beta}$ is `r round(diagnostics$Rhat[2],digits=2)`.00
+
+# 3
+Let us scatter plot the parameters
+```{r}
+theta = extract(fit1)$theta
+alpha = theta[,1]
+beta = theta[,2]
+plot(alpha,beta)
+```
+We can conclude that the plot is very similar to last weeks plot and the plot from the course book.
+
+# 4. 
+
+The following tech was used for the assignment:
+
+1. OS: Windows 10 
+
+2. Language: R
+
+3. Interface used: Rstan
+
+I had no installation or compilation error. I ran everything locally. I found the documentation quite lacking, I found no explanation for the `y ~ dist(para1,para2)` kind of syntax and when to use it and when to use normal `y = dist(y,para1,para2)` syntax. 
