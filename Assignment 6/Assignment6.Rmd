@@ -121,4 +121,6 @@ The following tech was used for the assignment:
 
 3. Interface used: Rstan
 
-I had no installation or compilation error. I ran everything locally. I found the documentation quite lacking, I found no explanation for the `y ~ dist(para1,para2)` kind of syntax and when to use it and when to use normal `y = dist(y,para1,para2)` syntax. 
+I had no installation or compilation error on my laptop. I ran everything locally. I had however problems getting things to work on my desktop, the stanmodel woldn't work for some reason. I couldn't find the cause of the problem.
+
+I found the documentation quite lacking, I found no explanation for the `y ~ dist(para1,para2)` kind of syntax and when to use it and when to use normal `y = dist(y,para1,para2)` syntax. 
