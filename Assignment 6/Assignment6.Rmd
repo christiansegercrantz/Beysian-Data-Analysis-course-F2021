@@ -39,11 +39,9 @@ data {
   vector[2] mu; 
   matrix[2,2] sigma;
 }
-
 parameters {
   vector[2] theta; 
 }
-
 model {
   theta ~ multi_normal(mu, sigma);
   for (k in 1:N) {
@@ -53,16 +51,16 @@ model {
 }
 ```
 
-Let us create the data used by the stan file. 
+Let us create the data used by stan 
 
 ```{r, message=FALSE, warning=FALSE}
 data <- list(
-  N = length(bioassay$x),
-  x = bioassay$x,
-  n = bioassay$n,
-  y = bioassay$y,
-  mu = mu,
-  sigma = sigma 
+  N = length(bioassay$x), #Number of data points
+  x = bioassay$x,         #Outcome
+  n = bioassay$n,         #Total draws
+  y = bioassay$y,         #Successes
+  mu = mu,                #Mean vector
+  sigma = sigma           #Covariance matrix
 )
 ```
 
@@ -83,7 +81,7 @@ Let us print the model
 print(fit1)
 ```
 
-and here we can see how the paramters alpha and beta are distributed
+and here we can see how the parameters alpha and beta are distributed
 
 ```{r, message=FALSE, warning=FALSE}
 plot(fit1, probs=c(.05,.5,.95))
@@ -101,7 +99,7 @@ We use the built in function for Rhat from Rstan
 diagnostics = monitor(fit1)
 ```
 
-The $\widehat R_{\alpha}$ is `r round(diagnostics$Rhat[1],digits=2)`.00 and $\widehat R_{\beta}$ is `r round(diagnostics$Rhat[2],digits=2)`.00
+The $\widehat R_{\alpha}$ is `r round(diagnostics$Rhat[1],digits=2)`.00 and $\widehat R_{\beta}$ is `r round(diagnostics$Rhat[2],digits=2)`.00. 
 
 # 3
 Let us scatter plot the parameters
