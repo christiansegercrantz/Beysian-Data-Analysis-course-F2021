@@ -99,7 +99,7 @@ We use the built in function for Rhat from Rstan
 diagnostics = monitor(fit1)
 ```
 
-The $\widehat R_{\alpha}$ is `r round(diagnostics$Rhat[1],digits=2)`.00 and $\widehat R_{\beta}$ is `r round(diagnostics$Rhat[2],digits=2)`.00. 
+The $\widehat R_{\alpha}$ is `r round(diagnostics$Rhat[1],digits=2)`.00 and $\widehat R_{\beta}$ is `r round(diagnostics$Rhat[2],digits=2)`.00. We can from this conclude that since the $\widehat R$-values are $\widehat R < 1.05$ that the chains have converged well.
 
 # 3
 Let us scatter plot the parameters
