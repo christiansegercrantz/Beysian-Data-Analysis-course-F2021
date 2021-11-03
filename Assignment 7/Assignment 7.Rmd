@@ -1,0 +1,99 @@
+---
+title: "BDA - Assignment 7"
+date: "7/10/2021"
+output: 
+  pdf_document: 
+    toc: no
+urlcolor: blue
+---
+
+```{r include=FALSE, echo=FALSE}
+rm(list = ls())
+library(aaltobda)
+library("rstan")
+data("drowning")
+```
+
+```{stan, output.var="stanmodel"}
+data {
+  int<lower=0> N; // number of data points
+  vector[N] x;    // observation year
+  vector[N] y;    // observation number of drowned
+  real xpred;     // prediction year
+}
+parameters {
+  real alpha;
+  real beta;
+  real<lower=0> sigma;
+  real<lower=0> sigma_beta;
+  real mu_alpha;
+  real<lower=0> sigma_alpha;
+}
+transformed parameters {
+  vector[N] mu = alpha + beta*x;
+}
+model {
+  alpha ~ normal(mu_alpha,sigma_alpha);
+  beta ~ normal(0, sigma_beta);
+  y ~ normal(mu, sigma);
+}
+generated quantities {
+  vector[N] ypred;
+  for(n in 1:N){
+    ypred[n] = normal_rng(mu[n], sigma);
+  }
+}
+
+```
+
+```{r}
+mu_hist = 138
+mu_beta = 0 
+z = qnorm(0.995)
+sigma_beta = (mu_hist/2-mu_beta)/z
+
+test=lm(formula = drowning$drownings ~ drowning$year)
+mu_alpha = lm(formula = drowning$drownings ~ drowning$year)$Intercept
+
+#qnorm(c(0.005,0.995), mean= 0, sd = sigma_beta)
+```
+
+```{r, message=FALSE, warning=FALSE}
+mu <- mean(drowning[,2])
+sigma <- var(drowning[,2])
+data <- list(
+  N = length(drowning$drownings), #Number of data points
+  x = drowning$year,              #Year
+  y = drowning$drownings,         #Amount of drownings
+  xpred = 2020,                   #Year(s) to predict
+  mu = mu,                        #Mean vector
+  sigma = sigma,                  #Covariance matrix
+  simga_beta=sigma_beta,          #Variance of beta
+  mu_alpha = 2446,
+  sigma_alpha = 1000
+)
+```
+
+```{r}
+fit1 = sampling(stanmodel,
+  data = data,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+```{r}
+#print(fit1)
+1+1
+```
+
+```{r}
+extract <- data.frame(extract(fit1))
+ypred  <- extract(fit1)$ypred
+hist(ypred)
+ggplot(extract, aes(x=beta)) + geom_histogram(binwidth = 0.05)
+ggplot(extract, aes(x=alpha)) + geom_histogram(binwidth = 200)
+```
