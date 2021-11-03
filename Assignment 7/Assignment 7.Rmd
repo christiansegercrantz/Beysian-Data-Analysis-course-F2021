@@ -94,6 +94,11 @@ fit1 = sampling(stanmodel,
 extract <- data.frame(extract(fit1))
 ypred  <- extract(fit1)$ypred
 hist(ypred)
-ggplot(extract, aes(x=beta)) + geom_histogram(binwidth = 0.05)
-ggplot(extract, aes(x=alpha)) + geom_histogram(binwidth = 200)
+ggplot(extract, aes(x=beta)) +
+  geom_histogram(aes(y=..density..), binwidth = 0.1, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(beta)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
+ggplot(extract, aes(x=alpha)) +   geom_histogram(aes(y=..density..), binwidth = 200, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(alpha)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
 ```
