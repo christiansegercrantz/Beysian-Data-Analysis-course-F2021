@@ -1,5 +1,5 @@
 ---
-title: "BDA - Assignment 7"
+title: "BDA - Assignment 8"
 date: "21/11/2021"
 output: 
   pdf_document: 
@@ -11,5 +11,73 @@ urlcolor: blue
 rm(list = ls())
 library(aaltobda)
 library("rstan")
+library(loo)
 data("factory")
+```
+# Seprate model
+## 1.
+```{stan, output.var="separatemodel"}
+data {
+ int<lower=0> N;
+ int<lower=0> J;
+ vector[J] y[N];
+ real mean_mu_prior;
+ real<lower=0> mean_sigma_prior;
+ real<lower=0> sigma_prior;
+}
+
+parameters {
+ vector[J] mu;
+ vector <lower=0>[J] sigma;
+}
+
+model {
+ //priors
+ for (j in 1:J){
+  mu[j] ~ normal(mean_mu_prior, mean_sigma_prior);
+  sigma[j] ~ inv_chi_square(sigma_prior);
+ }
+ //likelihoods
+ for (j in 1:J)
+  y[,j] ~ normal(mu[j], sigma[j]);
+ }
+
+generated quantities {
+ //for the first machine
+ real ypred;
+ vector[J] log_lik;
+ ypred = normal_rng(mu[6], sigma[6]);
+ for (j in 1:J){
+      log_lik[j] = normal_lpdf(y[,j] | mu[j], sigma[j]);
+   }
+}
+```
+
+```{r}
+mean_mu_prior = 100
+mean_sigma_prior = 10
+sigma_prior = 10
+separate_data <- list(
+  y = factory,
+  N = nrow(factory),
+  J = ncol(factory),
+ mean_mu_prior = mean_mu_prior,
+ mean_sigma_prior = mean_sigma_prior,
+ sigma_prior = sigma_prior
+)
+```
+
+```{r}
+fit_separate = sampling(separatemodel,
+  data = separate_data,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+```{r}
+print(fit_separate)
 ```

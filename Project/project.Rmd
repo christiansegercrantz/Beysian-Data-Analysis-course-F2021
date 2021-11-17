@@ -11,28 +11,30 @@ urlcolor: blue
 rm(list = ls())
 library("rstan")
 library("dplyr")
-data <- read.csv(file = 'covid_vaccination_vs_death_ratio.csv')
+data <- read.csv(file = 'diabetes.csv')
 ```
 
 ```{r}
-data_newest_date <- data %>% 
-  group_by(country) %>%
-  slice(which.max(as.Date(date, '%Y-%m-%d'))) %>%
-  mutate(people_fully_vaccinated_procentage = people_fully_vaccinated
-/population*100)
-data_newest_date
+data <- data %>%
+  filter(BloodPressure > 0) %>%
+  mutate(AgeGroup = case_when(
+  Age <= 30      ~ "Young",
+  Age > 30       ~ "Old")
+  )
+data
 ```
 
+
 ```{r}
-ggplot(data_newest_date, aes(x=people_fully_vaccinated_procentage)) +
-  geom_histogram(aes(y=..density..), binwidth = 5, colour="black", fill="white") +
-  geom_vline(aes(xintercept=mean(people_fully_vaccinated_procentage)), color="blue", linetype="dashed", size=1) +
-  geom_density(alpha=.2, fill="#FF6666")
+means <- data %>% group_by(AgeGroup) %>% summarise(mean = mean(BloodPressure),
+                                             n = n())
+
+ggplot(data, aes(x=BloodPressure, fill=AgeGroup)) +
+  geom_histogram(aes(y=..density..), binwidth = 5, colour="black",position = "identity", alpha = 0.4) +
+  geom_vline(data = means, aes(xintercept=mean, color = AgeGroup), linetype="dashed", size=1) +
+  geom_density(alpha=.2)
 ```
 ```{r}
-ggplot(data[data[, "country"] == "Finland",], aes(x=New_deaths)) +
-  geom_histogram(aes(y=..density..), binwidth = 1, colour="black", fill="white") +
-  geom_vline(aes(xintercept=mean(New_deaths)), color="blue", linetype="dashed", size=1) +
-  geom_density(alpha=.2, fill="#FF6666")
+ggplot(data, aes(x=Age, y=BloodPressure, color=AgeGroup)) + geom_point() 
 ```
 
