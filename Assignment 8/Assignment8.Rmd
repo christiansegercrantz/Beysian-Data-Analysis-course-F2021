@@ -1,0 +1,15 @@
+---
+title: "BDA - Assignment 7"
+date: "21/11/2021"
+output: 
+  pdf_document: 
+    toc: no
+urlcolor: blue
+---
+
+```{r include=FALSE, echo=FALSE}
+rm(list = ls())
+library(aaltobda)
+library("rstan")
+data("factory")
+```
