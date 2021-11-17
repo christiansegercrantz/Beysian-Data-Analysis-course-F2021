@@ -3,7 +3,8 @@ title: "BDA - Assignment 8"
 date: "21/11/2021"
 output: 
   pdf_document: 
-    toc: no
+    toc: yes
+    toc_depth: 2
 urlcolor: blue
 ---
 
@@ -16,6 +17,8 @@ data("factory")
 ```
 # Seprate model
 ## 1.
+
+We copy the model from assignment 7 and modify it to add the log likelihood in the "generated quantaties" block.
 ```{stan, output.var="separatemodel"}
 data {
  int<lower=0> N;
@@ -45,11 +48,12 @@ model {
 generated quantities {
  //for the first machine
  real ypred;
- vector[J] log_lik;
+ vector[J] log_lik[N];
  ypred = normal_rng(mu[6], sigma[6]);
  for (j in 1:J){
-      log_lik[j] = normal_lpdf(y[,j] | mu[j], sigma[j]);
-   }
+  for (n in 1:N){
+      log_lik[n,j] = normal_lpdf(y[n,j] | mu[j], sigma[j]);
+   }}
 }
 ```
 
@@ -78,6 +82,190 @@ fit_separate = sampling(separatemodel,
   )
 ```
 
-```{r}
-print(fit_separate)
+## 2
+```{r, warning=FALSE}
+log_like_separate = extract_log_lik(fit_separate, merge_chains = FALSE)
+r_eff <- relative_eff(exp(log_like_separate), cores = 4)
+loo_separate <- loo(log_like_separate, r_eff = r_eff, cores = 4)
+p_loo_separate <- loo_separate$p_loo
+print(loo_separate)
+plot(loo_separate)
 ```
+
+## 3.
+We can the effective number of paramters, $p_{eff}$ using the "p_loo" value from the above table which is $p_{loo-cv} =$`r p_loo_separate`
+
+## 4.
+From the table above we can see that the $\widehat k$ values are mostly good, but the are some very bad values as well. Hence, the model is unreliable.
+
+# Pooled model
+## 1.
+```{stan, output.var="pooledmodel"}
+data {
+ int<lower=0> N;
+ int<lower=0> J;
+ vector[N*J] y;
+ real mean_mu_prior;
+ real<lower=0> mean_sigma_prior;
+ real<lower=0> sigma_prior;
+}
+
+parameters {
+ real mu;
+ real <lower=0> sigma;
+}
+
+model {
+ //prior
+  mu ~ normal(mean_mu_prior, mean_sigma_prior);
+  sigma ~ inv_chi_square(sigma_prior);
+ //likelihoods
+  y ~ normal(mu, sigma);
+}
+
+generated quantities {
+ real ypred;
+ vector[N*J] log_lik;
+ ypred = normal_rng(mu, sigma);
+  for (n in 1:(N*J)){
+      log_lik[n] = normal_lpdf(y[n] | mu, sigma);
+   }
+}
+
+```
+
+```{r}
+mean_mu_prior = 100
+mean_sigma_prior = 10
+sigma_prior = 10
+pooled_data <- list(
+  y = unlist(factory),
+  N = nrow(factory),
+  J = ncol(factory),
+ mean_mu_prior = mean_mu_prior,
+ mean_sigma_prior = mean_sigma_prior,
+ sigma_prior = sigma_prior
+)
+```
+
+```{r}
+fit_pooled = sampling(pooledmodel,
+  data = pooled_data,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+## 2.
+```{r, warning=FALSE}
+log_like_pooled = extract_log_lik(fit_pooled, merge_chains = FALSE)
+r_eff <- relative_eff(exp(log_like_pooled), cores = 4)
+loo_pooled <- loo(log_like_pooled, r_eff = r_eff, cores = 4)
+p_loo_pooled <- loo_pooled$p_loo
+print(loo_pooled)
+plot(loo_pooled)
+```
+## 3.
+As in the separate model, we can the value using the "p_loo" value from the above table which is $p_{loo-cv} =$`r p_loo_pooled`
+
+## 4.
+From the above table we can see that all the k values are good (at the time of writing). The value is hence reliable.
+
+# Hierarchical
+## 1.
+```{stan, output.var="hierarchicalmodel"}
+data {
+ int<lower=0> N;
+ int<lower=0> J;
+ vector[J] y[N];
+ real mean_mu_prior;
+ real<lower=0> mean_sigma_prior;
+ real<lower=0> sigma_prior;
+}
+
+parameters {
+ real mu;
+ real <lower=0> sigma;
+ real <lower=0> tau;
+ vector[J] mu_i;
+}
+
+model {
+  //hyperpriors
+  mu ~ normal(mean_mu_prior, mean_sigma_prior);
+  tau ~ inv_chi_square(sigma_prior);
+  
+ //prior
+  for(j in 1:J){
+    mu_i[j] ~ normal(mu, tau);
+  }
+  sigma ~ inv_chi_square(tau);
+  
+ //likelihoods
+ for(j in 1:J){
+   y[,j] ~ normal(mu_i[j], sigma);
+ }
+  
+}
+
+generated quantities {
+ real ypred;
+ real ypred_7;
+ vector[J] log_lik[N];
+ ypred = normal_rng(mu_i[6], sigma);
+ ypred_7 = normal_rng(mu, sigma);
+ for (j in 1:J){
+  for (n in 1:N){
+      log_lik[n,j] = normal_lpdf(y[n,j] | mu_i[j], sigma);
+   }}
+}
+
+```
+
+```{r}
+mean_mu_prior = 100
+mean_sigma_prior = 10
+sigma_prior = 10
+hierarchical_data <- list(
+  y = factory,
+  N = nrow(factory),
+  J = ncol(factory),
+ mean_mu_prior = mean_mu_prior,
+ mean_sigma_prior = mean_sigma_prior,
+ sigma_prior = sigma_prior
+)
+```
+
+```{r, warning=FALSE}
+fit_hierarchical = sampling(hierarchicalmodel,
+  data = hierarchical_data,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+## 2.
+```{r, warning=FALSE}
+log_like_hierarchical = extract_log_lik(fit_hierarchical, merge_chains = FALSE)
+r_eff <- relative_eff(exp(log_like_hierarchical), cores = 4)
+loo_hierarchical <- loo(log_like_hierarchical, r_eff = r_eff, cores = 4)
+print(loo_hierarchical)
+plot(loo_hierarchical)
+p_loo_hierarchical <- loo_hierarchical$p_loo
+```
+## 3.
+As in the separate model, we can the value using the "p_loo" value from the above table which is $p_{loo-cv} =$`r p_loo_hierarchical`.
+## 4.
+From the above table we can see that the $\widehat k$ are mostly good with 1 ok value, so in overall they are all at least ok. Hence, the value is somewhat reliable.
+
+# 5.
+```{r}
+loo_compare(loo_separate,loo_pooled,loo_hierarchical)
+```
+
+From the results we can see that the difference in the hierarchical and pooled model are marginal, if any at all, while the separate receives mmuch worse score then the two other. However, since the standard errors are so large, it's hard to be sure of the result.
