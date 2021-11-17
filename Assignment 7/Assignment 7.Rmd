@@ -14,49 +14,68 @@ library("rstan")
 data("drowning")
 ```
 
+# 1
+# a)
+The following things have been fixed
+1. The bound of sigma, as the variance can't be negative we added a lowr bound of 0 to it.
+2. We added a ; to the row for y in the model block for the model to run.
+3. We changed x to xpred for ypred in the generated quantitites.
+(4. added and empty row at the end for the stan file to run)
+
+Fixed are marked with comments below.
+
 ```{stan, output.var="stanmodel"}
 data {
-  int<lower=0> N; // number of data points
-  vector[N] x;    // observation year
-  vector[N] y;    // observation number of drowned
-  real xpred;     // prediction year
+  int<lower=0> N; 
+  vector[N] x;    
+  vector[N] y;    
+  real xpred;     
 }
 parameters {
-  real alpha;
-  real beta;
-  real<lower=0> sigma;
-  real<lower=0> sigma_beta;
+  real alpha;               // added at part d)
+  real beta;                // added at part c)
+  real<lower=0> sigma;      // fixed at part a)
+  real<lower=0> sigma_beta; // added at part c)
   real mu_alpha;
-  real<lower=0> sigma_alpha;
+  real<lower=0> sigma_alpha; // added at part d)
 }
 transformed parameters {
   vector[N] mu = alpha + beta*x;
 }
 model {
-  alpha ~ normal(mu_alpha,sigma_alpha);
-  beta ~ normal(0, sigma_beta);
-  y ~ normal(mu, sigma);
+  alpha ~ normal(mu_alpha,sigma_alpha); // added at part d)
+  beta ~ normal(0, sigma_beta); // added at part c)
+  y ~ normal(mu, sigma); // fixed at part a)
 }
 generated quantities {
-  vector[N] ypred;
-  for(n in 1:N){
-    ypred[n] = normal_rng(mu[n], sigma);
-  }
+  real ypred = normal_rng(alpha + beta*xpred, sigma); // fixed at part a)
 }
 
 ```
 
-```{r}
+## b)
+We determine a weekly informative beta by using the normal scaling factor z. In order to get the 99%-interval we use qnorm of 0.995.
+
+```{r, message=FALSE, warning=FALSE}
 mu_hist = 138
 mu_beta = 0 
 z = qnorm(0.995)
 sigma_beta = (mu_hist/2-mu_beta)/z
 
-test=lm(formula = drowning$drownings ~ drowning$year)
-mu_alpha = lm(formula = drowning$drownings ~ drowning$year)$Intercept
-
-#qnorm(c(0.005,0.995), mean= 0, sd = sigma_beta)
 ```
+## c)
+
+The parameters sigma_beta was added as well as beta to the (parameter and) model block. The additions are marked in the model with the comment "// added at part c)" 
+
+## d)
+
+```{r}
+z = qnorm(0.995)
+test=lm(formula = drowning$drownings ~ drowning$year)
+mu_alpha = lm(formula = drowning$drownings ~ drowning$year)$coefficients[[1]]
+sigma_alpha = (mu_alpha/2 - 0)/z
+```
+We use a linear fit and similar technique as in c part to create a weekly prior alpha. The additions in the coded are marked with "// added at part d)" 
 
 ```{r, message=FALSE, warning=FALSE}
 mu <- mean(drowning[,2])
@@ -66,15 +85,15 @@ data <- list(
   x = drowning$year,              #Year
   y = drowning$drownings,         #Amount of drownings
   xpred = 2020,                   #Year(s) to predict
-  mu = mu,                        #Mean vector
-  sigma = sigma,                  #Covariance matrix
+  #mu = mu,                        #Mean vector
+  #sigma = sigma,                  #Covariance matrix
   simga_beta=sigma_beta,          #Variance of beta
-  mu_alpha = 2446,
-  sigma_alpha = 1000
+  mu_alpha = mu_alpha,
+  sigma_alpha = sigma_alpha
 )
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 fit1 = sampling(stanmodel,
   data = data,            # named list of data
   chains = 4,             # number of Markov chains
@@ -86,14 +105,15 @@ fit1 = sampling(stanmodel,
 ```
 
 ```{r}
-#print(fit1)
-1+1
+print(fit1)
 ```
 
 ```{r}
 extract <- data.frame(extract(fit1))
-ypred  <- extract(fit1)$ypred
-hist(ypred)
+ggplot(extract, aes(x=ypred)) +
+  geom_histogram(aes(y=..density..), binwidth = 5, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(ypred)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
 ggplot(extract, aes(x=beta)) +
   geom_histogram(aes(y=..density..), binwidth = 0.1, colour="black", fill="white") +
   geom_vline(aes(xintercept=mean(beta)), color="blue", linetype="dashed", size=1) +
@@ -102,3 +122,519 @@ ggplot(extract, aes(x=alpha)) +   geom_histogram(aes(y=..density..), binwidth = 
   geom_vline(aes(xintercept=mean(alpha)), color="blue", linetype="dashed", size=1) +
   geom_density(alpha=.2, fill="#FF6666")
 ```
+
+The histograms looks similar to those in the assignment.
+
+# 2
+
+```{r}
+rm(list = ls())
+data("factory")
+```
+
+## Separate model
+
+### a)
+
+In the separate model, we assume that all the machines come from their own indepdendent distribution. The mathematical formulation is
+
+$y_{ij} \sim \mathcal{N}(\mu_j, \sigma_j)$
+
+$\mu_j \sim \mathcal{N}(100, 10)$
+
+$\sigma_j \sim \text{Inv-}\chi^2(10)$.
+
+### b)
+
+```{stan, output.var="separatemodel"}
+data {
+ int<lower=0> N;
+ int<lower=0> J;
+ vector[J] y[N];
+ real mean_mu_prior;
+ real<lower=0> mean_sigma_prior;
+ real<lower=0> sigma_prior;
+}
+
+parameters {
+ vector[J] mu;
+ vector <lower=0>[J] sigma;
+}
+
+model {
+ //priors
+ for (j in 1:J){
+  mu[j] ~ normal(mean_mu_prior, mean_sigma_prior);
+  sigma[j] ~ inv_chi_square(sigma_prior);
+ }
+ //likelihoods
+ for (j in 1:J)
+  y[,j] ~ normal(mu[j], sigma[j]);
+ }
+
+generated quantities {
+ //for the first machine
+ real ypred;
+ ypred = normal_rng(mu[6], sigma[6]);
+}
+```
+
+```{r}
+mean_mu_prior = 100
+mean_sigma_prior = 10
+sigma_prior = 10
+separate_data <- list(
+  y = factory,
+  N = nrow(factory),
+  J = ncol(factory),
+ mean_mu_prior = mean_mu_prior,
+ mean_sigma_prior = mean_sigma_prior,
+ sigma_prior = sigma_prior
+)
+```
+
+```{r}
+fit_separate = sampling(separatemodel,
+  data = separate_data,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+```{r}
+print(fit_separate)
+```
+
+### c)
+
+```{r}
+extract_separate <- data.frame(extract(fit_separate))
+
+ggplot(extract_separate, aes(x=mu.6)) +
+  geom_histogram(aes(y=..density..), binwidth = 2, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(mu.6)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
+ggplot(extract_separate, aes(x=ypred)) +
+  geom_histogram(aes(y=..density..), binwidth = 3, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(ypred)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
+```
+
+#### i)
+
+We can see the distribution of the mean of the 6th machine in the first histogram. The mean of the distribution lies around 90.
+
+#### ii)
+
+We can see the distribution of the predictions of the 6th machine in the second histogram.
+
+#### iii)
+
+Since we have separate models, there's no way for us to accurately predict a 7th machines values.
+
+### d)
+
+We make a new model in order to simulate the alternative priors.
+
+```{stan, output.var="separatemodel_alternative"}
+data {
+ int<lower=0> N;
+ int<lower=0> J;
+ vector[J] y[N];
+ real mean_mu_prior;
+ real<lower=0> mean_sigma_prior;
+ real<lower=0> sigma_prior;
+}
+
+parameters {
+ vector[J] mu;
+ vector <lower=0>[J] sigma;
+}
+
+model {
+ //priors
+ for (j in 1:J){
+  mu[j] ~ normal(mean_mu_prior, mean_sigma_prior);
+  sigma[j] ~ gamma(sigma_prior, sigma_prior);
+ }
+ //likelihoods
+ for (j in 1:J)
+  y[,j] ~ normal(mu[j], sigma[j]);
+ }
+
+generated quantities {
+ //for the sixth machine
+ real ypred;
+ ypred = normal_rng(mu[6], sigma[6]);
+}
+```
+
+```{r}
+separate_data_alternative <- list(
+  y = factory,
+  N = nrow(factory),
+  J = ncol(factory),
+  mean_mu_prior = 0,
+  mean_sigma_prior = 10,
+  sigma_prior = 1
+)
+
+fit_separate_alternative = sampling(separatemodel_alternative,
+  data = separate_data_alternative,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+
+extract_separate_alternative <- data.frame(extract(fit_separate_alternative))
+
+mu.1_interval = quantile(extract_separate_alternative$mu.1, probs=c(0.05,0.95))
+```
+
+The posterior expectation for the the mean of the first machine is `r round(mean(extract_separate_alternative$mu.1), digits=2)` with a 90% credible interval of `r mu.1_interval`.
+
+## Pooled model
+
+### a)
+
+In the pooled model, we assume that all the samples come from one distribution with the same parameters $\theta$. Thus, we only have one $\mu$ and $\sigma$ for all the samples.
+
+$y\_{i} \sim \mathcal{N}(\mu, \sigma)$
+
+$\mu \sim \mathcal{N}(100, 10)$
+
+$\sigma \sim \text{Inv-}\chi^2(10)$.
+
+Thus, instead of looping over the machines, as we did in the previous part, we now draw all the y's from the one and same distribution in our stan code.
+
+### b)
+
+```{stan, output.var="pooledmodel"}
+data {
+ int<lower=0> N;
+ int<lower=0> J;
+ vector[N*J] y;
+ real mean_mu_prior;
+ real<lower=0> mean_sigma_prior;
+ real<lower=0> sigma_prior;
+}
+
+parameters {
+ real mu;
+ real <lower=0> sigma;
+}
+
+model {
+ //prior
+  mu ~ normal(mean_mu_prior, mean_sigma_prior);
+  sigma ~ inv_chi_square(sigma_prior);
+ //likelihoods
+  y ~ normal(mu, sigma);
+}
+
+generated quantities {
+ real ypred;
+ ypred = normal_rng(mu, sigma);
+}
+
+```
+
+```{r}
+mean_mu_prior = 100
+mean_sigma_prior = 10
+sigma_prior = 10
+pooled_data <- list(
+  y = unlist(factory),
+  N = nrow(factory),
+  J = ncol(factory),
+ mean_mu_prior = mean_mu_prior,
+ mean_sigma_prior = mean_sigma_prior,
+ sigma_prior = sigma_prior
+)
+```
+
+```{r}
+fit_pooled = sampling(pooledmodel,
+  data = pooled_data,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+### c)
+
+```{r}
+extract_pooled <- data.frame(extract(fit_pooled))
+
+ggplot(extract_pooled, aes(x=mu)) +
+  geom_histogram(aes(y=..density..), binwidth = 2, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(mu)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
+ggplot(extract_pooled, aes(x=ypred)) +
+  geom_histogram(aes(y=..density..), binwidth = 5, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(ypred)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
+```
+Since we have a pooled model, the posterior distribution for the machines are all the same.
+
+#### i)
+We can see the distribution of the mean of the 6th machine in the first histogram. The mean of the distribution lies around 93.
+
+#### ii)
+We can see the distribution of the predictions of the 6th machine in the second histogram.
+
+#### iii)
+Since, as noted, the porsterioir distribution is the same ofr all the machines is the distribution of the mean for the seventh machine the same as the sixth machine.
+
+### d)
+
+```{stan, output.var="pooledmodel_alternative"}
+data {
+ int<lower=0> N;
+ int<lower=0> J;
+ vector[N*J] y;
+ real mean_mu_prior;
+ real<lower=0> mean_sigma_prior;
+ real<lower=0> sigma_prior;
+}
+
+parameters {
+ real mu;
+ real <lower=0> sigma;
+}
+
+model {
+ //prior
+  mu ~ normal(mean_mu_prior, mean_sigma_prior);
+  sigma ~ gamma(sigma_prior,sigma_prior);
+ //likelihoods
+  y ~ normal(mu, sigma);
+}
+
+generated quantities {
+ real ypred;
+ ypred = normal_rng(mu, sigma);
+}
+
+```
+
+```{r}
+pooled_data_alternative <- list(
+  y = unlist(factory),
+  N = nrow(factory),
+  J = ncol(factory),
+ mean_mu_prior = 1,
+ mean_sigma_prior = 10,
+ sigma_prior = 1
+)
+
+fit_pooled_alternative = sampling(pooledmodel_alternative,
+  data = pooled_data_alternative,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+)
+
+extract_pooled_alternative <- data.frame(extract(fit_pooled_alternative))
+
+mu.1_interval = quantile(extract_pooled_alternative$mu, probs=c(0.05,0.95))
+```
+
+The posterior expectation for the the mean of the first machine is `r round(mean(extract_pooled_alternative$mu), digits=2)` with a 90% credible interval of `r mu.1_interval`.
+
+## Hierarchical model
+
+### a)
+
+Since we are using a hierarchical model now, we will make use of the hyperparameters $\mu$ and $\tau$ to get the paramets $\mu_i$ and $\sigma$ for the machines. Each machine will have their own mean $\mu_i$ and a common variance $\sigma$.
+
+$y\_{i} \sim \mathcal{N}(\mu_i, \sigma)$
+
+$\mu_i \sim \mathcal{N}(\mu, \tau)$
+
+$\sigma \sim \text{Inv-}\chi^2(\tau)$.
+
+$\mu \sim \mathcal{N}(100, 10)$
+
+$\tau \sim \text{Inv-}\chi^2(10)$
+
+### b)
+
+```{stan, output.var="hierarchicalmodel"}
+data {
+ int<lower=0> N;
+ int<lower=0> J;
+ vector[J] y[N];
+ real mean_mu_prior;
+ real<lower=0> mean_sigma_prior;
+ real<lower=0> sigma_prior;
+}
+
+parameters {
+ real mu;
+ real <lower=0> sigma;
+ real <lower=0> tau;
+ vector[J] mu_i;
+}
+
+model {
+  //hyperpriors
+  mu ~ normal(mean_mu_prior, mean_sigma_prior);
+  tau ~ inv_chi_square(sigma_prior);
+  
+ //prior
+  for(j in 1:J){
+    mu_i[j] ~ normal(mu, tau);
+  }
+  sigma ~ inv_chi_square(tau);
+  
+ //likelihoods
+ for(j in 1:J){
+   y[,j] ~ normal(mu_i[j], sigma);
+ }
+  
+}
+
+generated quantities {
+ real ypred;
+ real ypred_7;
+ ypred = normal_rng(mu_i[6], sigma);
+ ypred_7 = normal_rng(mu, sigma);
+}
+
+```
+
+```{r}
+mean_mu_prior = 100
+mean_sigma_prior = 10
+sigma_prior = 10
+hierarchical_data <- list(
+  y = factory,
+  N = nrow(factory),
+  J = ncol(factory),
+ mean_mu_prior = mean_mu_prior,
+ mean_sigma_prior = mean_sigma_prior,
+ sigma_prior = sigma_prior
+)
+```
+
+```{r}
+fit_hierarchical = sampling(hierarchicalmodel,
+  data = hierarchical_data,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+### c)
+
+```{r}
+extract_hierarchical <- data.frame(extract(fit_hierarchical))
+
+
+ggplot(extract_hierarchical, aes(x=mu_i.6)) +
+  geom_histogram(aes(y=..density..), binwidth = 2, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(mu_i.6)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
+ggplot(extract_hierarchical, aes(x=ypred)) +
+  geom_histogram(aes(y=..density..), binwidth = 5, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(ypred)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
+ggplot(extract_hierarchical, aes(x=ypred_7)) +
+  geom_histogram(aes(y=..density..), binwidth = 5, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(ypred_7)), color="blue", linetype="dashed", size=1) +
+  geom_density(alpha=.2, fill="#FF6666")
+```
+
+#### i)
+
+We can see the distribution of the mean of the 6th machine in the first histogram. The mean of the distribution lies around 94.
+
+#### ii)
+We can see the distribution of the predictions of the 6th machine in the second histogram.
+
+#### iii)
+The final histogram shows the posterior predicitve distribution of the 7th machine. Since we have a hierarchical distribution we have a separate model for it.
+
+### d)
+
+```{stan, output.var="hierarchicalmodel_alternative"}
+data {
+ int<lower=0> N;
+ int<lower=0> J;
+ vector[J] y[N];
+ real mean_mu_prior;
+ real<lower=0> mean_sigma_prior;
+ real<lower=0> sigma_prior;
+}
+
+parameters {
+ real mu;
+ real <lower=0> sigma;
+ real <lower=0> tau;
+ vector[J] mu_i;
+}
+
+model {
+  //hyperpriors
+  mu ~ normal(mean_mu_prior, mean_sigma_prior);
+  tau ~ gamma(sigma_prior, sigma_prior);
+  
+ //prior
+  for(j in 1:J){
+    mu_i[j] ~ normal(mu, tau);
+  }
+  sigma ~ inv_chi_square(tau);
+  
+ //likelihoods
+ for(j in 1:J){
+   y[,j] ~ normal(mu_i[j], sigma);
+ }
+  
+}
+
+generated quantities {
+ real ypred;
+ ypred = normal_rng(mu, sigma);
+}
+
+```
+
+```{r}
+hierarchical_data_alternative <- list(
+  y = factory,
+  N = nrow(factory),
+  J = ncol(factory),
+ mean_mu_prior = 1,
+ mean_sigma_prior = 10,
+ sigma_prior = 1
+)
+
+fit_hierarchical_alternative = sampling(hierarchicalmodel_alternative,
+  data = hierarchical_data_alternative,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+
+extract_hierarchical_alternative <- data.frame(extract(fit_hierarchical_alternative))
+
+mu.1_interval = quantile(extract_hierarchical_alternative$mu_i.1, probs=c(0.05,0.95))
+```
+
+The posterior expectation for the the mean of the first machine is `r round(mean(extract_hierarchical_alternative$mu_i.1), digits=2)` with a 90% credible interval of `r mu.1_interval`.

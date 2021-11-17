@@ -21,8 +21,5 @@ model {
   y ~ normal(mu, sigma);
 }
 generated quantities {
-  vector[N] ypred;
-  for(n in 1:N){
-    ypred[n] = normal_rng(mu[n], sigma);
-  }
+  real ypred = normal_rng(alpha + beta*xpred, sigma);
 }
