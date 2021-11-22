@@ -15,10 +15,13 @@ library("rstan")
 library(loo)
 data("factory")
 ```
-# Seprate model
+
+# Separate model
+
 ## 1.
 
-We copy the model from assignment 7 and modify it to add the log likelihood in the "generated quantaties" block.
+We copy the model from assignment 7 and modify it to add the log likelihood in the "generated quantities" block.
+
 ```{stan, output.var="separatemodel"}
 data {
  int<lower=0> N;
@@ -83,23 +86,31 @@ fit_separate = sampling(separatemodel,
 ```
 
 ## 2
+
 ```{r, warning=FALSE}
 log_like_separate = extract_log_lik(fit_separate, merge_chains = FALSE)
 r_eff <- relative_eff(exp(log_like_separate), cores = 4)
 loo_separate <- loo(log_like_separate, r_eff = r_eff, cores = 4)
 p_loo_separate <- loo_separate$p_loo
+elpd_loo_separate <- loo_separate$elpd_loo
 print(loo_separate)
 plot(loo_separate)
 ```
 
+We can see that the elpd$_{loo}$ value for the separate model is `r round(elpd_loo_separate, digits=2)`
+
 ## 3.
-We can the effective number of paramters, $p_{eff}$ using the "p_loo" value from the above table which is $p_{loo-cv} =$`r p_loo_separate`
+
+We can the effective number of paramters, $p_{eff}$ using the "p_loo" value from the above table which is $p_{loo-cv} =$ `r p_loo_separate`
 
 ## 4.
+
 From the table above we can see that the $\widehat k$ values are mostly good, but the are some very bad values as well. Hence, the model is unreliable.
 
 # Pooled model
+
 ## 1.
+Similarly to the separate, we copy the model from last weeks assignment and modify the "generated quantities" block.
 ```{stan, output.var="pooledmodel"}
 data {
  int<lower=0> N;
@@ -158,23 +169,33 @@ fit_pooled = sampling(pooledmodel,
   refresh = 0             # no progress shown
   )
 ```
+
 ## 2.
+
 ```{r, warning=FALSE}
 log_like_pooled = extract_log_lik(fit_pooled, merge_chains = FALSE)
 r_eff <- relative_eff(exp(log_like_pooled), cores = 4)
 loo_pooled <- loo(log_like_pooled, r_eff = r_eff, cores = 4)
 p_loo_pooled <- loo_pooled$p_loo
+elpd_loo_pooled <- loo_pooled$elpd_loo
 print(loo_pooled)
 plot(loo_pooled)
 ```
+
+We can see that the elpd$_{loo}$ value for the pooled model is `r round(elpd_loo_pooled, digits=2)`
+
 ## 3.
-As in the separate model, we can the value using the "p_loo" value from the above table which is $p_{loo-cv} =$`r p_loo_pooled`
+
+As in the separate model, we can the value using the "p_loo" value from the above table which is $p_{loo-cv} =$ `r p_loo_pooled`
 
 ## 4.
+
 From the above table we can see that all the k values are good (at the time of writing). The value is hence reliable.
 
 # Hierarchical
+
 ## 1.
+Once again, we copy and modify the "generated quantities" block.
 ```{stan, output.var="hierarchicalmodel"}
 data {
  int<lower=0> N;
@@ -250,22 +271,31 @@ fit_hierarchical = sampling(hierarchicalmodel,
 ```
 
 ## 2.
+
 ```{r, warning=FALSE}
 log_like_hierarchical = extract_log_lik(fit_hierarchical, merge_chains = FALSE)
 r_eff <- relative_eff(exp(log_like_hierarchical), cores = 4)
 loo_hierarchical <- loo(log_like_hierarchical, r_eff = r_eff, cores = 4)
+p_loo_hierarchical <- loo_hierarchical$p_loo
+elpd_loo_hierarchical <- loo_hierarchical$elpd_loo
 print(loo_hierarchical)
 plot(loo_hierarchical)
-p_loo_hierarchical <- loo_hierarchical$p_loo
 ```
+
+We can see that the elpd$_{loo}$ value for the hierarchical model is `r round(elpd_loo_hierarchical, digits=2)`
+
 ## 3.
-As in the separate model, we can the value using the "p_loo" value from the above table which is $p_{loo-cv} =$`r p_loo_hierarchical`.
+
+As in the separate model, we can the value using the "p_loo" value from the above table which is $p_{loo-cv} =$ `r p_loo_hierarchical`. 
+
 ## 4.
+
 From the above table we can see that the $\widehat k$ are mostly good with 1 ok value, so in overall they are all at least ok. Hence, the value is somewhat reliable.
 
 # 5.
+
 ```{r}
 loo_compare(loo_separate,loo_pooled,loo_hierarchical)
 ```
 
-From the results we can see that the difference in the hierarchical and pooled model are marginal, if any at all, while the separate receives mmuch worse score then the two other. However, since the standard errors are so large, it's hard to be sure of the result.
+From the results we can see that the difference in the hierarchical and pooled model are marginal, if any at all, while the separate receives much worse score then the two other. However, since the standard errors are so large, it's hard to be sure of the result.
