@@ -11,6 +11,9 @@ urlcolor: blue
 rm(list = ls())
 library("rstan")
 library("dplyr")
+library("loo")
+options(digits = 3)
+knitr::opts_chunk$set(warning=FALSE)
 data <- read.csv(file = 'diabetes.csv')
 ```
 
@@ -20,14 +23,20 @@ data <- data %>%
   mutate(AgeGroup = case_when(
   Age <= 30      ~ "Young",
   Age > 30       ~ "Old")
-  )
-data
+  ) %>% head(-1)
+#data
+```
+```{r, warning=FALSE, echo=FALSE}
+ggplot(data, aes(x=BloodPressure)) +
+  geom_histogram(aes(y=..density..), binwidth = 5, colour="black",position = "identity", colour="black", fill="white") +
+  geom_density(alpha=.2, fill="#FF6666") +
+  geom_vline(aes(xintercept=mean(BloodPressure)), color="blue", linetype="dashed", size=1)
 ```
 
-
 ```{r}
-means <- data %>% group_by(AgeGroup) %>% summarise(mean = mean(BloodPressure),
-                                             n = n())
+means <- data %>%
+  group_by(AgeGroup) %>%
+  summarise(mean = mean(BloodPressure), n = n())
 
 ggplot(data, aes(x=BloodPressure, fill=AgeGroup)) +
   geom_histogram(aes(y=..density..), binwidth = 5, colour="black",position = "identity", alpha = 0.4) +
@@ -38,3 +47,236 @@ ggplot(data, aes(x=BloodPressure, fill=AgeGroup)) +
 ggplot(data, aes(x=Age, y=BloodPressure, color=AgeGroup)) + geom_point() 
 ```
 
+
+```{stan, output.var = "nonhieramodel"}
+data {
+  int<lower=0> N;                  //Amount of data points
+  vector[N] y;                     //
+  real mean_mu_prior;              //
+  real<lower=0> mean_sigma_prior;  //
+  real<lower=0> var_prior;         //
+}
+
+parameters {
+  real mu;
+  real<lower=0> sigma;
+}
+
+model {
+  //prior
+  mu ~ normal(mean_mu_prior, mean_sigma_prior);
+  sigma ~ inv_chi_square(var_prior);
+ //likelihoods
+  y ~ normal(mu, sigma);
+}
+
+generated quantities {
+  real ypred;
+  vector[N] log_lik;
+  ypred = normal_rng(mu, sigma);
+  for (n in 1:(N)){
+    log_lik[n] = normal_lpdf(y[n] | mu, sigma);
+  }
+}
+
+```
+
+```{r}
+data_old <- data %>%
+  filter(AgeGroup == "Old")
+
+mean_mu_prior_old = mean(data_old$BloodPressure)
+mean_sigma_prior_old = 10
+var_prior_old = 20
+data_nonhiera_old <- list(
+  y = data_old$BloodPressure,
+  N = length(data_old$BloodPressure),
+  mean_mu_prior = mean_mu_prior_old,
+  mean_sigma_prior = mean_sigma_prior_old,
+  var_prior = var_prior_old
+)
+```
+
+
+```{r}
+fit_nonhiera_old = sampling(nonhieramodel,
+  data = data_nonhiera_old,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+```{r}
+head(monitor(fit_nonhiera_old, print = FALSE),3)
+```
+
+```{r}
+traceplot(fit_nonhiera_old, inc_warmup = FALSE, nrow = 3, pars=c("mu", "sigma", "ypred"))
+```
+
+```{r}
+data_young <- data %>%
+  filter(AgeGroup == "Young")
+
+mean_mu_prior_old = mean(data_young$BloodPressure)
+mean_sigma_prior_old = 10
+var_prior_old = 20
+data_nonhiera_young <- list(
+  y = data_young$BloodPressure,
+  N = length(data_young$BloodPressure),
+  mean_mu_prior = mean_mu_prior_old,
+  mean_sigma_prior = mean_sigma_prior_old,
+  var_prior = var_prior_old
+)
+```
+
+```{r}
+fit_nonhiera_young = sampling(nonhieramodel,
+  data = data_nonhiera_young,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+```{r}
+head(monitor(fit_nonhiera_young, print = FALSE),3)
+```
+
+```{r}
+traceplot(fit_nonhiera_young, inc_warmup = FALSE, nrow = 3, pars=c("mu", "sigma", "ypred"))
+```
+
+```{stan, output.var = "hieramodel"}
+data {
+  int<lower=0> N;                  //Amount of data points
+  vector[N] y;                     //
+  real mean_mu_prior;              //
+  real<lower=0> mean_sigma_prior;  //
+  real<lower=0> var_prior;         //
+}
+
+parameters {
+  real mu;
+  real<lower=0> sigma;
+  real mu_hypo;
+  real<lower=0> tau;
+}
+
+model {
+  //hyperpriors
+  mu_hypo ~ normal(mean_mu_prior, mean_sigma_prior);
+  tau ~ inv_chi_square(var_prior);
+  //prior
+  mu ~ normal(mu_hypo, tau);
+  sigma ~ inv_chi_square(var_prior);
+ //likelihoods
+  y ~ normal(mu, sigma);
+}
+
+generated quantities {
+  real ypred;
+  vector[N] log_lik;
+  ypred = normal_rng(mu, sigma);
+  for (n in 1:(N)){
+    log_lik[n] = normal_lpdf(y[n] | mu, sigma);
+  }
+}
+
+```
+
+```{r}
+mean_mu_prior = mean(data$BloodPressure)
+mean_sigma_prior = 10
+var_prior = 20
+data_hiera_old <- list(
+  y = data_old$BloodPressure,
+  N = length(data_old$BloodPressure),
+  mean_mu_prior = mean_mu_prior,
+  mean_sigma_prior = mean_sigma_prior_old,
+  var_prior = var_prior
+)
+data_hiera_young <- list(
+  y = data_young$BloodPressure,
+  N = length(data_young$BloodPressure),
+  mean_mu_prior = mean_mu_prior,
+  mean_sigma_prior = mean_sigma_prior,
+  var_prior = var_prior
+)
+```
+
+```{r}
+fit_hiera_old = sampling(hieramodel,
+  data = data_hiera_old,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+```{r}
+fit_hiera_young = sampling(hieramodel,
+  data = data_hiera_young,            # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  cores = 1,              # number of cores (could use one per chain)
+  refresh = 0             # no progress shown
+  )
+```
+
+```{r}
+head(monitor(fit_hiera_old, print = FALSE),3)
+```
+
+```{r}
+traceplot(fit_hiera_old, inc_warmup = FALSE, nrow = 3, pars=c("mu", "sigma", "ypred"))
+```
+
+```{r}
+head(monitor(fit_hiera_young, print = FALSE),3)
+```
+
+```{r}
+plot(fit_hiera_young)
+traceplot(fit_hiera_young, inc_warmup = FALSE, nrow = 3, pars=c("mu", "sigma", "ypred"))
+```
+
+```{r}
+extract_nonhiera_old <- data.frame(extract(fit_nonhiera_old))
+ggplot(data = extract_nonhiera_old ,aes(x=mu, y=sigma))+geom_point()
+```
+
+```{r}
+loo_nonhiera_old <- loo(fit_nonhiera_old, pars="log_lik")
+loo_nonhiera_old
+```
+
+```{r}
+loo_nonhiera_young <- loo(fit_nonhiera_young, pars="log_lik")
+loo_nonhiera_young
+```
+
+```{r}
+loo_hiera_old <- loo(fit_nonhiera_old, pars="log_lik")
+loo_hiera_old
+```
+
+```{r}
+loo_hiera_young <- loo(fit_nonhiera_young, pars="log_lik")
+loo_hiera_young
+```
+
+```{r}
+print("The model for the old:")
+loo_compare(loo_nonhiera_old, loo_hiera_old)
+print("The model for the young:")
+loo_compare(loo_nonhiera_young, loo_hiera_young)
+```
